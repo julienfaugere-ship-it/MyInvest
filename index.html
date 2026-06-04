@@ -260,6 +260,58 @@ main { max-width: 960px; margin: 0 auto; padding: 20px 16px 40px; }
 .p-history-row { display:flex; justify-content:space-between; font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-muted); padding:3px 0; border-bottom:1px solid var(--bg2); }
 .p-history-row:last-child { border-bottom:none; }
 
+/* ── BANK VIGNETTES ── */
+.bank-vignettes { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:16px; }
+@media(max-width:600px){ .bank-vignettes { grid-template-columns:1fr; } }
+
+.bank-card {
+  background:var(--surface);
+  border:2px solid var(--border);
+  border-radius:18px;
+  padding:20px 18px;
+  cursor:pointer;
+  transition:box-shadow .2s, transform .15s, border-color .2s;
+  box-shadow:var(--shadow);
+  position:relative;
+  overflow:hidden;
+  min-height:140px;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+}
+.bank-card:hover { box-shadow:var(--shadow-md); transform:translateY(-3px); }
+.bank-card.active { border-color:var(--accent); box-shadow:0 0 0 3px rgba(26,110,247,.1), var(--shadow-md); }
+
+.bank-card-top { display:flex; align-items:flex-start; justify-content:space-between; }
+.bank-logo-wrap { width:52px; height:52px; border-radius:12px; overflow:hidden; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.bank-logo-wrap img { width:100%; height:100%; object-fit:contain; }
+.bank-card-arrow { font-size:16px; color:var(--text-dim); transition:transform .2s; }
+.bank-card.active .bank-card-arrow { transform:rotate(180deg); color:var(--accent); }
+
+.bank-name { font-size:13px; font-weight:700; color:var(--text); margin-top:12px; }
+.bank-total { font-family:'JetBrains Mono',monospace; font-size:22px; font-weight:700; margin-top:4px; }
+.bank-count { font-size:11px; color:var(--text-muted); margin-top:3px; }
+.bank-gain { font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:600; padding:2px 8px; border-radius:5px; display:inline-block; margin-top:5px; }
+
+/* Bank detail panel */
+.bank-detail {
+  background:var(--surface2);
+  border:1px solid var(--border);
+  border-radius:0 0 16px 16px;
+  border-top:none;
+  padding:20px 18px;
+  margin-bottom:16px;
+  display:none;
+}
+.bank-detail.open { display:block; }
+.bank-detail-header {
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:16px; flex-wrap:wrap; gap:10px;
+}
+.bank-detail-title { font-size:14px; font-weight:700; display:flex; align-items:center; gap:8px; }
+.bank-detail-logo { width:28px; height:28px; border-radius:7px; overflow:hidden; }
+.bank-detail-logo img { width:100%; height:100%; object-fit:contain; }
+
 /* ── PLACEMENT EDIT PANEL ── */
 .p-edit-panel { display:none; margin-top:12px; border-top:1px solid var(--border); padding-top:14px; }
 .p-edit-panel.open { display:block; }
@@ -429,6 +481,7 @@ main { max-width: 960px; margin: 0 auto; padding: 20px 16px 40px; }
     <!-- ════ ONGLET PLACEMENTS ════ -->
     <div class="tab-content" id="tab-placements">
 
+      <!-- KPI GLOBAL -->
       <div class="summary-grid">
         <div class="summary-item">
           <div class="summary-label">Épargne totale</div>
@@ -451,12 +504,19 @@ main { max-width: 960px; margin: 0 auto; padding: 20px 16px 40px; }
         </div>
       </div>
 
-      <button class="form-toggle" onclick="toggleForm('placementForm')">＋ Ajouter un placement</button>
+      <!-- 3 VIGNETTES BANQUES -->
+      <div id="bankCards"></div>
+
+      <!-- FORMULAIRE AJOUT (s'ouvre depuis une vignette) -->
       <div class="add-form hidden" id="placementForm">
-        <div class="form-title">🏦 Nouveau placement</div>
+        <div class="form-title" style="display:flex;align-items:center;gap:10px;">
+          <span>＋ Nouveau placement —</span>
+          <span id="pFormBankBadge" style="font-weight:700;color:var(--accent);"></span>
+        </div>
+        <input type="hidden" id="pBank">
         <div class="form-row">
           <div class="form-group"><label>Date d'ouverture</label><input type="date" id="pDate"></div>
-          <div class="form-group"><label>Nom</label><input type="text" id="pName" placeholder="ex: Livret A BNP"></div>
+          <div class="form-group"><label>Nom</label><input type="text" id="pName" placeholder="ex: Livret A"></div>
         </div>
         <div class="form-row">
           <div class="form-group">
@@ -481,18 +541,17 @@ main { max-width: 960px; margin: 0 auto; padding: 20px 16px 40px; }
         </div>
         <div class="form-row">
           <div class="form-group"><label>Montant (€)</label><input type="number" id="pAmount" placeholder="1 000.00" step="0.01"></div>
-          <div class="form-group"><label>Taux annuel (%) — optionnel</label><input type="number" id="pRate" placeholder="3.00" step="0.01"></div>
+          <div class="form-group"><label>Taux annuel (%)</label><input type="number" id="pRate" placeholder="3.00" step="0.01"></div>
         </div>
-        <button class="btn-add" id="btnAddPlacement" onclick="addPlacement()">Ajouter le placement</button>
+        <div style="display:flex;gap:8px;">
+          <button class="btn-add" id="btnAddPlacement" style="flex:1;">Enregistrer</button>
+          <button onclick="closePlacementForm()" style="background:var(--bg2);border:1px solid var(--border);border-radius:9px;padding:11px 16px;font-family:Sora,sans-serif;font-size:13px;font-weight:600;color:var(--text-muted);cursor:pointer;">Annuler</button>
+        </div>
       </div>
 
-      <div class="section-header">
-        <div class="section-title">Mes placements</div>
-        <div class="section-badge" id="pCountBadge">0</div>
-      </div>
-      <div id="placementList">
-        <div class="loading-overlay"><div class="spinner"></div> Chargement…</div>
-      </div>
+      <!-- Liste placements (cachée, remplacée par vignettes) -->
+      <div id="placementList" style="display:none"></div>
+
     </div>
 
   </main>
@@ -1112,6 +1171,32 @@ function renderStockEntries() {
 }
 
 // ── PLACEMENTS ──
+// ── BANKS CONFIG ──
+const BANKS = [
+  {
+    key: 'CAISSE_EPARGNE',
+    name: 'Caisse d\'Épargne',
+    logo: 'https://upload.wikimedia.org/wikipedia/fr/thumb/b/b2/Caisse_d%27%C3%89pargne_2022.svg/200px-Caisse_d%27%C3%89pargne_2022.svg.png',
+    bg: '#f0fdf4', border: '#86efac', accent: '#16a34a', text: '#14532d'
+  },
+  {
+    key: 'CREDIT_AGRICOLE',
+    name: 'Crédit Agricole',
+    logo: 'https://upload.wikimedia.org/wikipedia/fr/thumb/8/84/Logo_Cr%C3%A9dit_Agricole.svg/200px-Logo_Cr%C3%A9dit_Agricole.svg.png',
+    bg: '#fefce8', border: '#fde047', accent: '#ca8a04', text: '#713f12'
+  },
+  {
+    key: 'GMF',
+    name: 'GMF',
+    logo: 'https://upload.wikimedia.org/wikipedia/fr/thumb/4/44/GMF_logo_2021.svg/200px-GMF_logo_2021.svg.png',
+    bg: '#eff6ff', border: '#93c5fd', accent: '#1d4ed8', text: '#1e3a5f'
+  },
+];
+
+// Track which bank panel is open
+let activeBankKey = null;
+
+// ── ADD PLACEMENT ──
 window.addPlacement = async () => {
   const date  = document.getElementById('pDate').value;
   const name  = document.getElementById('pName').value.trim();
@@ -1119,12 +1204,13 @@ window.addPlacement = async () => {
   const emoji = document.getElementById('pEmoji').value;
   const amount= parseFloat(document.getElementById('pAmount').value);
   const rate  = parseFloat(document.getElementById('pRate').value) || 0;
+  const bank  = document.getElementById('pBank').value;
   if (!date || !name || isNaN(amount) || amount<=0) { showNotif('⚠️ Date, nom et montant requis'); return; }
   const btn = document.getElementById('btnAddPlacement');
   btn.disabled=true; btn.textContent='Enregistrement…';
   try {
     await addDoc(collection(db, 'users', currentUser.uid, 'placements'), {
-      date, name, type, emoji, rate,
+      date, name, type, emoji, rate, bank,
       history: [{ date, value: amount }],
       createdAt: serverTimestamp()
     });
@@ -1132,13 +1218,43 @@ window.addPlacement = async () => {
     document.getElementById('placementForm').classList.add('hidden');
     showNotif('✅ Placement ajouté');
   } catch(e) { showNotif('❌ Erreur : '+e.message); }
-  btn.disabled=false; btn.textContent='Ajouter le placement';
+  btn.disabled=false; btn.textContent='Enregistrer';
+};
+
+window.closePlacementForm = () => {
+  document.getElementById('placementForm').classList.add('hidden');
+};
+
+window.openAddPlacement = (bankKey) => {
+  const bank = BANKS.find(b => b.key === bankKey);
+  if (!bank) return;
+  document.getElementById('pBank').value = bankKey;
+  document.getElementById('pFormBankBadge').textContent = bank.name;
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('pDate').value = today;
+  ['pName','pAmount','pRate'].forEach(id => document.getElementById(id).value='');
+  const form = document.getElementById('placementForm');
+  // Place the form after the bank detail panel
+  const detailEl = document.getElementById('bankdetail-'+bankKey);
+  if (detailEl && detailEl.classList.contains('open')) {
+    detailEl.after(form);
+  }
+  form.classList.remove('hidden');
+  form.scrollIntoView({ behavior:'smooth', block:'nearest' });
+};
+
+window.toggleBank = (bankKey) => {
+  if (activeBankKey === bankKey) {
+    activeBankKey = null;
+  } else {
+    activeBankKey = bankKey;
+  }
+  renderPlacements();
 };
 
 window.togglePlacementEdit = fsId => {
   const panel = document.getElementById('pedit-' + fsId);
   if (!panel) return;
-  // Close all other edit panels
   document.querySelectorAll('.p-edit-panel.open').forEach(el => {
     if (el.id !== 'pedit-' + fsId) el.classList.remove('open');
   });
@@ -1151,11 +1267,10 @@ window.savePlacementEdit = async fsId => {
   const emoji = document.getElementById('pe-emoji-' + fsId)?.value;
   const rate  = parseFloat(document.getElementById('pe-rate-' + fsId)?.value) || 0;
   const date  = document.getElementById('pe-date-'  + fsId)?.value;
+  const bank  = document.getElementById('pe-bank-'  + fsId)?.value;
   if (!name) { showNotif('⚠️ Le nom est requis'); return; }
   try {
-    await updateDoc(doc(db, 'users', currentUser.uid, 'placements', fsId), {
-      name, type, emoji, rate, date
-    });
+    await updateDoc(doc(db, 'users', currentUser.uid, 'placements', fsId), { name, type, emoji, rate, date, bank });
     document.getElementById('pedit-' + fsId)?.classList.remove('open');
     showNotif('✅ Placement mis à jour');
   } catch(e) { showNotif('❌ Erreur : ' + e.message); }
@@ -1187,129 +1302,136 @@ window.deletePlacement = async fsId => {
   showNotif('🗑️ Placement supprimé');
 };
 
-function buildPlacementChart(history, fsId) {
-  if (history.length < 2) return '';
-  const W=500,H=80,pL=4,pR=4,pT=6,pB=6;
-  const vals=history.map(h=>h.value);
-  const mn=Math.min(...vals)*0.997, mx=Math.max(...vals)*1.003, r=mx-mn||1;
-  const pts=history.map((h,i)=>[pL+(i/(history.length-1))*(W-pL-pR), pT+(1-(h.value-mn)/r)*(H-pT-pB)]);
-  const isUp=vals.at(-1)>=vals[0], col=isUp?'#16a34a':'#dc2626';
-  const gId='pg'+fsId.replace(/[^a-z0-9]/gi,'');
-  const lineD='M'+pts.map(p=>p.join(',')).join(' L');
-  const fillD=lineD+` L${pts.at(-1)[0]},${H} L${pts[0][0]},${H} Z`;
-  const dots=pts.map((p,i)=>`<circle cx="${p[0]}" cy="${p[1]}" r="3.5" fill="${col}" stroke="white" stroke-width="1.5"><title>${fmtDate(history[i].date)} : ${fmtEur(history[i].value)}</title></circle>`).join('');
-  const evoPct=((vals.at(-1)-vals[0])/vals[0]*100).toFixed(2);
-  return `<div class="p-chart-wrap">
-    <div class="p-chart-label"><span>Évolution du montant</span><span style="color:${col};font-weight:700;">${isUp?'▲':'▼'} ${evoPct}%</span></div>
-    <div class="p-chart-svg-wrap">
-      <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
-        <defs><linearGradient id="${gId}" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="${col}" stop-opacity="0.15"/>
-          <stop offset="100%" stop-color="${col}" stop-opacity="0"/>
-        </linearGradient></defs>
-        <line x1="${pL}" y1="${pT}" x2="${W-pR}" y2="${pT}" stroke="var(--border)" stroke-width="0.5"/>
-        <line x1="${pL}" y1="${H-pB}" x2="${W-pR}" y2="${H-pB}" stroke="var(--border)" stroke-width="0.5"/>
-        <path d="${fillD}" fill="url(#${gId})"/>
-        <path d="${lineD}" fill="none" stroke="${col}" stroke-width="2" stroke-linejoin="round"/>
-        ${dots}
-      </svg>
-    </div>
-    <div class="p-chart-axis"><span>${fmtDate(history[0].date)} · ${Math.min(...vals).toLocaleString('fr-FR',{maximumFractionDigits:0})} €</span><span>${fmtDate(history.at(-1).date)} · ${Math.max(...vals).toLocaleString('fr-FR',{maximumFractionDigits:0})} €</span></div>
-  </div>`;
-}
-
 function renderPlacements() {
-  const list = document.getElementById('placementList');
-  const n = placements.length;
-  document.getElementById('pCount').textContent = n;
-  document.getElementById('pCountBadge').textContent = n+' placement'+(n>1?'s':'');
-  let totCur=0, totFirst=0, totProj=0;
-
-  if (n===0) {
-    list.innerHTML=`<div class="empty-state"><div class="icon">🏦</div><p>Aucun placement. Ajoutez votre première épargne.</p></div>`;
-    updatePlacementSummary(0,0,0); return;
-  }
+  // Assign CAISSE_EPARGNE as default bank for existing placements without bank field
+  placements.forEach(p => { if (!p.bank) p.bank = 'CAISSE_EPARGNE'; });
 
   const today = new Date().toISOString().split('T')[0];
+  let totCur=0, totFirst=0, totProj=0;
 
-  list.innerHTML = placements.map(p => {
+  // Compute global totals
+  placements.forEach(p => {
     const first=p.history[0].value, cur=p.history.at(-1).value;
-    const gain=cur-first, pct=first>0?(gain/first)*100:0;
-    const isPos=gain>=0, sign=isPos?'+':'';
-    totCur+=cur; totFirst+=first;
-    const annGain=cur*(p.rate/100); totProj+=annGain;
-    const barW=Math.min(Math.abs(pct)*4,100);
-    const projBox=p.rate>0?`<div class="projection-box" style="margin-top:10px;"><div><div class="proj-label">📊 Projection fin d'année</div><div style="font-size:11px;color:var(--text-muted);margin-top:2px;">taux ${p.rate}%/an · +${fmtEur(annGain)}</div></div><div class="proj-value">${fmtEur(cur+annGain)}</div></div>`:'';
-    const chartHtml = buildPlacementChart(p.history, p.fsId);
-    const histHtml = p.history.length>1?`<div class="p-history" style="margin-top:10px;"><div class="p-history-title">Toutes les saisies (${p.history.length})</div><div class="p-history-list">${[...p.history].reverse().map((h,i,arr)=>{const prev=arr[i+1];const diff=prev?h.value-prev.value:0;const dHtml=prev?`<span style="color:${diff>=0?'var(--green)':'var(--red)'};font-size:10px;">${diff>=0?'+':''}${fmtEur(diff)}</span>`:`<span style="font-size:10px;color:var(--text-dim)">1ère</span>`;return `<div class="p-history-row"><span>${fmtDate(h.date)}</span><span style="display:flex;gap:10px;align-items:center;">${dHtml}<b>${fmtEur(h.value)}</b></span></div>`;}).join('')}</div></div>`:'';
-    // Build type options
-    const types = ['Livret A','LDDS','PEA','Assurance-vie','PER','CEL','Livret Jeune','Compte Épargne','Crypto','Immobilier','Autre'];
-    const typeOpts = types.map(t => `<option value="${t}"${t===p.type?' selected':''}>${t}</option>`).join('');
-    const emojis = [['🏦','Banque'],['💰','Cash'],['📈','Croissance'],['🔐','Sécurisé'],['🏠','Immobilier'],['₿','Crypto'],['🌱','Long terme'],['🎯','Objectif'],['⭐','Premium']];
-    const emojiOpts = emojis.map(([v,l]) => `<option value="${v}"${v===p.emoji?' selected':''}>${v} ${l}</option>`).join('');
-
-    return `<div class="placement-item">
-      <div class="placement-head">
-        <div class="placement-left">
-          <div class="p-emoji">${p.emoji}</div>
-          <div>
-            <div class="p-name">${escHtml(p.name)}</div>
-            <div class="p-meta">${p.type}${p.rate?' · '+p.rate+'%/an':''} · ouvert le ${fmtDate(p.date)}</div>
-          </div>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <div class="placement-right">
-            <div class="p-current">${fmtEur(cur)}</div>
-            <div class="p-gain ${isPos?'pos':'neg'}">${sign}${fmtEur(gain)} (${sign}${pct.toFixed(2)}%)</div>
-          </div>
-          <button class="btn-p-edit" onclick="togglePlacementEdit('${p.fsId}')" title="Modifier les informations">⚙️ Éditer</button>
-          <button class="btn-delete" onclick="deletePlacement('${p.fsId}')">✕</button>
-        </div>
-      </div>
-
-      <!-- EDIT PANEL -->
-      <div class="p-edit-panel" id="pedit-${p.fsId}">
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--text-muted);margin-bottom:10px;">✏️ Modifier le placement</div>
-        <div class="p-edit-grid">
-          <div class="p-edit-group">
-            <label>Nom</label>
-            <input type="text" id="pe-name-${p.fsId}" value="${escHtml(p.name)}">
-          </div>
-          <div class="p-edit-group">
-            <label>Type</label>
-            <select id="pe-type-${p.fsId}">${typeOpts}</select>
-          </div>
-          <div class="p-edit-group">
-            <label>Taux annuel (%)</label>
-            <input type="number" id="pe-rate-${p.fsId}" value="${p.rate||''}" step="0.01" placeholder="0.00">
-          </div>
-          <div class="p-edit-group">
-            <label>Émoji</label>
-            <select id="pe-emoji-${p.fsId}">${emojiOpts}</select>
-          </div>
-          <div class="p-edit-group">
-            <label>Date d'ouverture</label>
-            <input type="date" id="pe-date-${p.fsId}" value="${p.date}">
-          </div>
-        </div>
-        <div class="p-edit-actions">
-          <button class="btn-p-save" onclick="savePlacementEdit('${p.fsId}')">✓ Enregistrer les modifications</button>
-          <button class="btn-p-cancel" onclick="togglePlacementEdit('${p.fsId}')">Annuler</button>
-        </div>
-      </div>
-
-      <div class="progress-wrap"><div class="progress-bar ${isPos?'bar-pos':'bar-neg'}" style="width:${barW}%"></div></div>
-      <div class="p-footer"><span>1ère saisie : <b>${fmtEur(first)}</b></span><span class="${isPos?'pos':'neg'}" style="font-weight:600;">${sign}${fmtEur(gain)}</span></div>
-      ${chartHtml}${projBox}${histHtml}
-      <div class="update-row">
-        <input type="date" id="pudate-${p.fsId}" value="${today}" style="width:130px;background:var(--bg2);border:1px solid var(--border2);border-radius:7px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12px;padding:7px 8px;">
-        <input type="number" id="pupdate-${p.fsId}" placeholder="Nouveau montant (€)" step="0.01" onkeydown="if(event.key==='Enter') updatePlacement('${p.fsId}')">
-        <button class="btn-update" onclick="updatePlacement('${p.fsId}')">Mettre à jour</button>
-      </div>
-    </div>`;
-  }).join('');
-
+    totCur += cur; totFirst += first;
+    totProj += cur * (p.rate/100);
+  });
   updatePlacementSummary(totCur, totFirst, totProj);
+
+  // Build bank vignettes
+  const container = document.getElementById('bankCards');
+  let html = '<div class="bank-vignettes">';
+
+  BANKS.forEach(bank => {
+    const bPlacements = placements.filter(p => (p.bank || 'CAISSE_EPARGNE') === bank.key);
+    const total = bPlacements.reduce((s,p) => s + p.history.at(-1).value, 0);
+    const firstTotal = bPlacements.reduce((s,p) => s + p.history[0].value, 0);
+    const gain = total - firstTotal;
+    const isActive = activeBankKey === bank.key;
+    const gainHtml = bPlacements.length > 0
+      ? `<span class="bank-gain" style="background:${gain>=0?'var(--green-light)':'var(--red-light)'};color:${gain>=0?'var(--green)':'var(--red)'}">
+           ${gain>=0?'+':''}${fmtEur(gain)}
+         </span>` : '';
+
+    html += `<div class="bank-card${isActive?' active':''}" onclick="toggleBank('${bank.key}')"
+        style="background:${bank.bg};border-color:${isActive?bank.accent:bank.border};">
+        <div class="bank-card-top">
+          <div class="bank-logo-wrap" style="background:#fff;border:1px solid ${bank.border};padding:4px;">
+            <img src="${bank.logo}" alt="${bank.name}" onerror="this.style.display='none';this.parentNode.innerHTML='🏦'">
+          </div>
+          <span class="bank-card-arrow">▾</span>
+        </div>
+        <div>
+          <div class="bank-name" style="color:${bank.text}">${bank.name}</div>
+          <div class="bank-total" style="color:${bank.accent}">${bPlacements.length>0?fmtEur(total):'—'}</div>
+          <div class="bank-count">${bPlacements.length} placement${bPlacements.length>1?'s':''}</div>
+          ${gainHtml}
+        </div>
+      </div>`;
+  });
+  html += '</div>';
+
+  // Build detail panels for each bank
+  BANKS.forEach(bank => {
+    const isActive = activeBankKey === bank.key;
+    if (!isActive) {
+      html += `<div class="bank-detail" id="bankdetail-${bank.key}"></div>`;
+      return;
+    }
+    const bPlacements = placements.filter(p => (p.bank || 'CAISSE_EPARGNE') === bank.key);
+    const bankOpts = BANKS.map(b => `<option value="${b.key}"${b.key===bank.key?' selected':''}>${b.name}</option>`).join('');
+
+    let placementsHtml = bPlacements.length === 0
+      ? `<div class="empty-state"><div class="icon">💰</div><p>Aucun placement pour cette banque.</p></div>`
+      : bPlacements.map(p => {
+          const first=p.history[0].value, cur=p.history.at(-1).value;
+          const gain=cur-first, pct=first>0?(gain/first)*100:0;
+          const isPos=gain>=0, sign=isPos?'+':'';
+          const barW=Math.min(Math.abs(pct)*4,100);
+          const annGain=cur*(p.rate/100);
+          const projBox=p.rate>0?`<div class="projection-box" style="margin-top:10px;"><div><div class="proj-label">📊 Projection fin d'année</div><div style="font-size:11px;color:var(--text-muted);margin-top:2px;">taux ${p.rate}%/an · +${fmtEur(annGain)}</div></div><div class="proj-value">${fmtEur(cur+annGain)}</div></div>`:'';
+          const chartHtml = buildPlacementChart(p.history, p.fsId);
+          const histHtml = p.history.length>1?`<div class="p-history" style="margin-top:10px;"><div class="p-history-title">Toutes les saisies (${p.history.length})</div><div class="p-history-list">${[...p.history].reverse().map((h,i,arr)=>{const prev=arr[i+1];const diff=prev?h.value-prev.value:0;const dHtml=prev?`<span style="color:${diff>=0?'var(--green)':'var(--red)'};font-size:10px;">${diff>=0?'+':''}${fmtEur(diff)}</span>`:`<span style="font-size:10px;color:var(--text-dim)">1ère</span>`;return `<div class="p-history-row"><span>${fmtDate(h.date)}</span><span style="display:flex;gap:10px;align-items:center;">${dHtml}<b>${fmtEur(h.value)}</b></span></div>`;}).join('')}</div></div>`:'';
+          const types = ['Livret A','LDDS','PEA','Assurance-vie','PER','CEL','Livret Jeune','Compte Épargne','Crypto','Immobilier','Autre'];
+          const typeOpts = types.map(t => `<option value="${t}"${t===p.type?' selected':''}>${t}</option>`).join('');
+          const emojis = [['🏦','Banque'],['💰','Cash'],['📈','Croissance'],['🔐','Sécurisé'],['🏠','Immobilier'],['₿','Crypto'],['🌱','Long terme'],['🎯','Objectif'],['⭐','Premium']];
+          const emojiOpts = emojis.map(([v,l]) => `<option value="${v}"${v===p.emoji?' selected':''}>${v} ${l}</option>`).join('');
+
+          return `<div class="placement-item">
+            <div class="placement-head">
+              <div class="placement-left">
+                <div class="p-emoji">${p.emoji}</div>
+                <div><div class="p-name">${escHtml(p.name)}</div><div class="p-meta">${p.type}${p.rate?' · '+p.rate+'%/an':''} · ouvert le ${fmtDate(p.date)}</div></div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <div class="placement-right"><div class="p-current">${fmtEur(cur)}</div><div class="p-gain ${isPos?'pos':'neg'}">${sign}${fmtEur(gain)} (${sign}${pct.toFixed(2)}%)</div></div>
+                <button class="btn-p-edit" onclick="togglePlacementEdit('${p.fsId}')">⚙️</button>
+                <button class="btn-delete" onclick="deletePlacement('${p.fsId}')">✕</button>
+              </div>
+            </div>
+            <div class="p-edit-panel" id="pedit-${p.fsId}">
+              <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--text-muted);margin-bottom:10px;">✏️ Modifier</div>
+              <div class="p-edit-grid">
+                <div class="p-edit-group"><label>Nom</label><input type="text" id="pe-name-${p.fsId}" value="${escHtml(p.name)}"></div>
+                <div class="p-edit-group"><label>Banque</label><select id="pe-bank-${p.fsId}">${bankOpts}</select></div>
+                <div class="p-edit-group"><label>Type</label><select id="pe-type-${p.fsId}">${typeOpts}</select></div>
+                <div class="p-edit-group"><label>Taux annuel (%)</label><input type="number" id="pe-rate-${p.fsId}" value="${p.rate||''}" step="0.01" placeholder="0.00"></div>
+                <div class="p-edit-group"><label>Émoji</label><select id="pe-emoji-${p.fsId}">${emojiOpts}</select></div>
+                <div class="p-edit-group"><label>Date d'ouverture</label><input type="date" id="pe-date-${p.fsId}" value="${p.date}"></div>
+              </div>
+              <div class="p-edit-actions">
+                <button class="btn-p-save" onclick="savePlacementEdit('${p.fsId}')">✓ Enregistrer</button>
+                <button class="btn-p-cancel" onclick="togglePlacementEdit('${p.fsId}')">Annuler</button>
+              </div>
+            </div>
+            <div class="progress-wrap"><div class="progress-bar ${isPos?'bar-pos':'bar-neg'}" style="width:${barW}%"></div></div>
+            <div class="p-footer"><span>1ère saisie : <b>${fmtEur(first)}</b></span><span class="${isPos?'pos':'neg'}" style="font-weight:600;">${sign}${fmtEur(gain)}</span></div>
+            ${chartHtml}${projBox}${histHtml}
+            <div class="update-row">
+              <input type="date" id="pudate-${p.fsId}" value="${today}" style="width:130px;background:var(--bg2);border:1px solid var(--border2);border-radius:7px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12px;padding:7px 8px;">
+              <input type="number" id="pupdate-${p.fsId}" placeholder="Nouveau montant (€)" step="0.01">
+              <button class="btn-update" onclick="updatePlacement('${p.fsId}')">Mettre à jour</button>
+            </div>
+          </div>`;
+        }).join('');
+
+    html += `<div class="bank-detail open" id="bankdetail-${bank.key}">
+      <div class="bank-detail-header">
+        <div class="bank-detail-title">
+          <div class="bank-detail-logo" style="background:#fff;border:1px solid ${bank.border};padding:2px;">
+            <img src="${bank.logo}" alt="${bank.name}" style="width:100%;height:100%;object-fit:contain;" onerror="this.style.display='none'">
+          </div>
+          <span style="color:${bank.accent}">${bank.name}</span>
+          <span style="font-size:11px;color:var(--text-muted);font-weight:400;">${bPlacements.length} placement${bPlacements.length>1?'s':''}</span>
+        </div>
+        <button class="btn-add-from-detail" onclick="openAddPlacement('${bank.key}')">＋ Ajouter un placement</button>
+      </div>
+      ${placementsHtml}
+    </div>`;
+  });
+
+  container.innerHTML = html;
+  document.getElementById('pCount').textContent = placements.length;
+  document.getElementById('pCountBadge') && (document.getElementById('pCountBadge').textContent = placements.length);
 }
 
 function updatePlacementSummary(cur,init,proj) {
@@ -1319,7 +1441,6 @@ function updatePlacementSummary(cur,init,proj) {
   const gEl=document.getElementById('pTotalGain'); gEl.textContent=sign+fmtEur(gain); gEl.style.color=gain>=0?'var(--green)':'var(--red)';
   const pEl=document.getElementById('pTotalPct'); pEl.textContent=sign+pct.toFixed(2)+'%'; pEl.style.color=gain>=0?'var(--green)':'var(--red)';
   document.getElementById('pProjection').textContent=proj>0?'+'+fmtEur(proj):fmtEur(proj);
-  document.getElementById('pCount').textContent=placements.length;
 }
 
 // ── UTILS ──
