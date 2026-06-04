@@ -817,28 +817,30 @@ window.cancelEdit = (fsId, event) => {
 };
 
 // ─── RENAME RUBRIQUE ───
-window.toggleRenameForm = (key, event) => {
+window.toggleRenameForm = (idx, event) => {
   event.stopPropagation();
-  const el = document.getElementById('rename-'+key.replace(/[^a-z0-9]/gi,'_'));
+  const r = RUBRIQUES[idx]; if (!r) return;
+  const el = document.getElementById('rename-'+r.key.replace(/[^a-z0-9]/gi,'_'));
   if (!el) return;
   document.querySelectorAll('.rename-form.open').forEach(f => f.classList.remove('open'));
   el.classList.toggle('open');
 };
 
-window.saveRename = (key, event) => {
+window.saveRename = (idx, event) => {
   event.stopPropagation();
-  const inp = document.getElementById('rename-input-'+key.replace(/[^a-z0-9]/gi,'_'));
-  const newLabel = inp.value.trim();
+  const r = RUBRIQUES[idx]; if (!r) return;
+  const inp = document.getElementById('rename-input-'+r.key.replace(/[^a-z0-9]/gi,'_'));
+  const newLabel = inp ? inp.value.trim() : '';
   if (!newLabel) return;
-  saveRubriqueLabel(key, newLabel);
+  saveRubriqueLabel(r.key, newLabel);
   renderStockEntries();
   showNotif('✅ Nom mis à jour');
 };
 
 // ─── OPEN FORM FROM DETAIL ───
-window.openAddFromDetail = (key, event) => {
+window.openAddFromDetail = (idx, event) => {
   event.stopPropagation();
-  const r = RUBRIQUES.find(r => r.key === key);
+  const r = RUBRIQUES[idx];
   if (!r) return;
   // Set hidden rubrique
   document.getElementById('sName').value = key;
@@ -872,7 +874,9 @@ window.closeStockForm = () => {
 };
 
 // ─── TOGGLE CARD ───
-window.toggleActionCard = key => {
+window.toggleActionCard = idx => {
+  const key = RUBRIQUES[idx]?.key;
+  if (!key) return;
   if (expandedCards.has(key)) expandedCards.delete(key);
   else expandedCards.add(key);
   renderStockEntries();
@@ -985,7 +989,7 @@ function renderStockEntries() {
 
   // ── 4 summary cards ──
   const cardsGrid = '<div class="action-cards-grid">' +
-    RUBRIQUES.map(r => {
+    RUBRIQUES.map((r, idx) => {
       const ents = sorted.filter(e => e.name === r.key);
       const last=ents.at(-1), first=ents[0];
       const isExp = expandedCards.has(r.key);
@@ -1001,7 +1005,7 @@ function renderStockEntries() {
           chartHtml = `<div class="ac-chart">${buildMiniSparkline(ents, r.dot)}</div>`;
         }
       }
-      return `<div class="action-card${isExp?' expanded':''}" onclick="toggleActionCard('${r.key}')">
+      return `<div class="action-card${isExp?' expanded':''}" data-idx="${idx}" onclick="toggleActionCard(${idx})">
         <div class="ac-header">
           <span class="ac-label" style="background:${r.bg};border-color:${r.border};color:${r.text}">${r.label}</span>
           <span class="ac-arrow">▾</span>
@@ -1011,7 +1015,7 @@ function renderStockEntries() {
     }).join('') + '</div>';
 
   // ── Detail panels ──
-  const detailPanels = RUBRIQUES.map(r => {
+  const detailPanels = RUBRIQUES.map((r, idx) => {
     if (!expandedCards.has(r.key)) return '';
     const ents = sorted.filter(e => e.name === r.key);
     const first=ents[0], last=ents.at(-1);
@@ -1071,14 +1075,14 @@ function renderStockEntries() {
         <div class="detail-header-left">
           <span class="detail-rubrique-badge" style="background:${r.bg};border-color:${r.border};color:${r.text}">${r.label}</span>
           <span style="font-size:12px;color:var(--text-muted)">${ents.length} saisie${ents.length>1?'s':''}</span>
-          <button class="btn-rename" onclick="toggleRenameForm('${r.key}',event)" title="Renommer cette rubrique">✏️</button>
+          <button class="btn-rename" onclick="event.stopPropagation();toggleRenameForm(${idx},event)" title="Renommer cette rubrique">✏️</button>
         </div>
-        <button class="btn-add-from-detail" onclick="openAddFromDetail('${r.key}',event)">＋ Ajouter une valeur</button>
+        <button class="btn-add-from-detail" onclick="openAddFromDetail(${idx},event)">＋ Ajouter une valeur</button>
       </div>
       <div class="rename-form" id="rename-${safeKey}" onclick="event.stopPropagation()">
         <input class="rename-input" id="rename-input-${safeKey}" type="text" value="${r.label}" placeholder="Nouveau nom…">
-        <button class="btn-rename-save" onclick="saveRename('${r.key}',event)">✓ Renommer</button>
-        <button class="btn-cancel-edit" onclick="event.stopPropagation();document.getElementById('rename-${safeKey}').classList.remove('open')">Annuler</button>
+        <button class="btn-rename-save" onclick="saveRename(${idx},event)">✓ Renommer</button>
+        <button class="btn-cancel-edit" onclick="event.stopPropagation();this.closest('.rename-form').classList.remove('open')">Annuler</button>
       </div>
       ${statsHtml}
       ${bigChart}
