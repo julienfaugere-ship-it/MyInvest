@@ -1242,17 +1242,62 @@ function renderPlacements() {
     const projBox=p.rate>0?`<div class="projection-box" style="margin-top:10px;"><div><div class="proj-label">📊 Projection fin d'année</div><div style="font-size:11px;color:var(--text-muted);margin-top:2px;">taux ${p.rate}%/an · +${fmtEur(annGain)}</div></div><div class="proj-value">${fmtEur(cur+annGain)}</div></div>`:'';
     const chartHtml = buildPlacementChart(p.history, p.fsId);
     const histHtml = p.history.length>1?`<div class="p-history" style="margin-top:10px;"><div class="p-history-title">Toutes les saisies (${p.history.length})</div><div class="p-history-list">${[...p.history].reverse().map((h,i,arr)=>{const prev=arr[i+1];const diff=prev?h.value-prev.value:0;const dHtml=prev?`<span style="color:${diff>=0?'var(--green)':'var(--red)'};font-size:10px;">${diff>=0?'+':''}${fmtEur(diff)}</span>`:`<span style="font-size:10px;color:var(--text-dim)">1ère</span>`;return `<div class="p-history-row"><span>${fmtDate(h.date)}</span><span style="display:flex;gap:10px;align-items:center;">${dHtml}<b>${fmtEur(h.value)}</b></span></div>`;}).join('')}</div></div>`:'';
+    // Build type options
+    const types = ['Livret A','LDDS','PEA','Assurance-vie','PER','CEL','Livret Jeune','Compte Épargne','Crypto','Immobilier','Autre'];
+    const typeOpts = types.map(t => `<option value="${t}"${t===p.type?' selected':''}>${t}</option>`).join('');
+    const emojis = [['🏦','Banque'],['💰','Cash'],['📈','Croissance'],['🔐','Sécurisé'],['🏠','Immobilier'],['₿','Crypto'],['🌱','Long terme'],['🎯','Objectif'],['⭐','Premium']];
+    const emojiOpts = emojis.map(([v,l]) => `<option value="${v}"${v===p.emoji?' selected':''}>${v} ${l}</option>`).join('');
+
     return `<div class="placement-item">
       <div class="placement-head">
         <div class="placement-left">
           <div class="p-emoji">${p.emoji}</div>
-          <div><div class="p-name">${escHtml(p.name)}</div><div class="p-meta">${p.type}${p.rate?' · '+p.rate+'%/an':''} · ouvert le ${fmtDate(p.date)}</div></div>
+          <div>
+            <div class="p-name">${escHtml(p.name)}</div>
+            <div class="p-meta">${p.type}${p.rate?' · '+p.rate+'%/an':''} · ouvert le ${fmtDate(p.date)}</div>
+          </div>
         </div>
-        <div style="display:flex;align-items:center;gap:10px;">
-          <div class="placement-right"><div class="p-current">${fmtEur(cur)}</div><div class="p-gain ${isPos?'pos':'neg'}">${sign}${fmtEur(gain)} (${sign}${pct.toFixed(2)}%)</div></div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div class="placement-right">
+            <div class="p-current">${fmtEur(cur)}</div>
+            <div class="p-gain ${isPos?'pos':'neg'}">${sign}${fmtEur(gain)} (${sign}${pct.toFixed(2)}%)</div>
+          </div>
+          <button class="btn-p-edit" onclick="togglePlacementEdit('${p.fsId}')" title="Modifier les informations">⚙️ Éditer</button>
           <button class="btn-delete" onclick="deletePlacement('${p.fsId}')">✕</button>
         </div>
       </div>
+
+      <!-- EDIT PANEL -->
+      <div class="p-edit-panel" id="pedit-${p.fsId}">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--text-muted);margin-bottom:10px;">✏️ Modifier le placement</div>
+        <div class="p-edit-grid">
+          <div class="p-edit-group">
+            <label>Nom</label>
+            <input type="text" id="pe-name-${p.fsId}" value="${escHtml(p.name)}">
+          </div>
+          <div class="p-edit-group">
+            <label>Type</label>
+            <select id="pe-type-${p.fsId}">${typeOpts}</select>
+          </div>
+          <div class="p-edit-group">
+            <label>Taux annuel (%)</label>
+            <input type="number" id="pe-rate-${p.fsId}" value="${p.rate||''}" step="0.01" placeholder="0.00">
+          </div>
+          <div class="p-edit-group">
+            <label>Émoji</label>
+            <select id="pe-emoji-${p.fsId}">${emojiOpts}</select>
+          </div>
+          <div class="p-edit-group">
+            <label>Date d'ouverture</label>
+            <input type="date" id="pe-date-${p.fsId}" value="${p.date}">
+          </div>
+        </div>
+        <div class="p-edit-actions">
+          <button class="btn-p-save" onclick="savePlacementEdit('${p.fsId}')">✓ Enregistrer les modifications</button>
+          <button class="btn-p-cancel" onclick="togglePlacementEdit('${p.fsId}')">Annuler</button>
+        </div>
+      </div>
+
       <div class="progress-wrap"><div class="progress-bar ${isPos?'bar-pos':'bar-neg'}" style="width:${barW}%"></div></div>
       <div class="p-footer"><span>1ère saisie : <b>${fmtEur(first)}</b></span><span class="${isPos?'pos':'neg'}" style="font-weight:600;">${sign}${fmtEur(gain)}</span></div>
       ${chartHtml}${projBox}${histHtml}
