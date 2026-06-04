@@ -479,65 +479,27 @@ main { max-width: 960px; margin: 0 auto; padding: 20px 16px 40px; }
     <!-- ════ ONGLET PLACEMENTS ════ -->
     <div class="tab-content" id="tab-placements">
 
-      <!-- KPI GLOBAL -->
       <div class="summary-grid">
-        <div class="summary-item">
-          <div class="summary-label">Épargne totale</div>
-          <div class="summary-value" id="pTotalCurrent">0 €</div>
-          <div class="summary-sub" id="pTotalInitial">initial: 0 €</div>
-        </div>
-        <div class="summary-item">
-          <div class="summary-label">Gains / Pertes</div>
-          <div class="summary-value" id="pTotalGain">0 €</div>
-          <div class="summary-sub" id="pTotalPct">0.00%</div>
-        </div>
-        <div class="summary-item">
-          <div class="summary-label">Projection annuelle</div>
-          <div class="summary-value" id="pProjection">0 €</div>
-          <div class="summary-sub">sur taux renseignés</div>
-        </div>
-        <div class="summary-item">
-          <div class="summary-label">Nb. placements</div>
-          <div class="summary-value" id="pCount">0</div>
-        </div>
+        <div class="summary-item"><div class="summary-label">Épargne totale</div><div class="summary-value" id="pTotalCurrent">0 €</div><div class="summary-sub" id="pTotalInitial">initial: 0 €</div></div>
+        <div class="summary-item"><div class="summary-label">Gains / Pertes</div><div class="summary-value" id="pTotalGain">0 €</div><div class="summary-sub" id="pTotalPct">0.00%</div></div>
+        <div class="summary-item"><div class="summary-label">Projection</div><div class="summary-value" id="pProjection">0 €</div><div class="summary-sub">sur taux</div></div>
+        <div class="summary-item"><div class="summary-label">Placements</div><div class="summary-value" id="pCount">0</div></div>
       </div>
 
-      <!-- 3 VIGNETTES BANQUES -->
       <div id="bankCards"></div>
 
-      <!-- FORMULAIRE AJOUT — toujours dans le HTML, jamais déplacé -->
       <div class="add-form hidden" id="placementForm" style="margin-top:12px;">
-        <div class="form-title" style="display:flex;align-items:center;gap:10px;">
-          <span>＋ Nouveau placement —</span>
-          <span id="pFormBankBadge" style="font-weight:700;color:var(--accent);"></span>
-        </div>
+        <div class="form-title">Nouveau placement — <span id="pFormBankBadge" style="font-weight:700;color:var(--accent)"></span></div>
         <div class="form-row">
-          <div class="form-group"><label>Date d'ouverture</label><input type="date" id="pDate"></div>
+          <div class="form-group"><label>Date</label><input type="date" id="pDate"></div>
           <div class="form-group"><label>Nom</label><input type="text" id="pName" placeholder="ex: Livret A"></div>
         </div>
         <div class="form-row">
-          <div class="form-group">
-            <label>Type</label>
-            <select id="pType">
-              <option>Livret A</option><option>LDDS</option><option>PEA</option>
-              <option>Assurance-vie</option><option>PER</option><option>CEL</option>
-              <option>Livret Jeune</option><option>Compte Épargne</option>
-              <option>Crypto</option><option>Immobilier</option><option>Autre</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Émoji</label>
-            <select id="pEmoji">
-              <option value="🏦">🏦 Banque</option><option value="💰">💰 Cash</option>
-              <option value="📈">📈 Croissance</option><option value="🔐">🔐 Sécurisé</option>
-              <option value="🏠">🏠 Immobilier</option><option value="₿">₿ Crypto</option>
-              <option value="🌱">🌱 Long terme</option><option value="🎯">🎯 Objectif</option>
-              <option value="⭐">⭐ Premium</option>
-            </select>
-          </div>
+          <div class="form-group"><label>Type</label><select id="pType"><option>Livret A</option><option>LDDS</option><option>PEA</option><option>Assurance-vie</option><option>PER</option><option>CEL</option><option>Livret Jeune</option><option>Compte Épargne</option><option>Crypto</option><option>Immobilier</option><option>Autre</option></select></div>
+          <div class="form-group"><label>Émoji</label><select id="pEmoji"><option value="🏦">🏦 Banque</option><option value="💰">💰 Cash</option><option value="📈">📈 Croissance</option><option value="🔐">🔐 Sécurisé</option><option value="🏠">🏠 Immobilier</option><option value="₿">₿ Crypto</option><option value="🌱">🌱 Long terme</option><option value="🎯">🎯 Objectif</option><option value="⭐">⭐ Premium</option></select></div>
         </div>
         <div class="form-row">
-          <div class="form-group"><label>Montant (€)</label><input type="number" id="pAmount" placeholder="1 000.00" step="0.01"></div>
+          <div class="form-group"><label>Montant (€)</label><input type="number" id="pAmount" placeholder="1000.00" step="0.01"></div>
           <div class="form-group"><label>Taux annuel (%)</label><input type="number" id="pRate" placeholder="3.00" step="0.01"></div>
         </div>
         <div style="display:flex;gap:8px;">
@@ -545,6 +507,8 @@ main { max-width: 960px; margin: 0 auto; padding: 20px 16px 40px; }
           <button id="btnCancelPlacement" style="background:var(--bg2);border:1px solid var(--border);border-radius:9px;padding:11px 16px;font-family:Sora,sans-serif;font-size:13px;font-weight:600;color:var(--text-muted);cursor:pointer;">Annuler</button>
         </div>
       </div>
+
+    </div>
 
     </div>
 
@@ -1173,282 +1137,233 @@ function renderStockEntries() {
 }
 
 // ── PLACEMENTS ──
-// ── BANKS CONFIG ──
 // ── BANKS ──
 const BANKS = [
-  { key:'CAISSE_EPARGNE',  name:"Caisse d'Épargne",  logo:'https://upload.wikimedia.org/wikipedia/fr/thumb/b/b2/Caisse_d%27%C3%89pargne_2022.svg/200px-Caisse_d%27%C3%89pargne_2022.svg.png',  bg:'#f0fdf4', border:'#86efac', accent:'#16a34a', text:'#14532d' },
-  { key:'CREDIT_AGRICOLE', name:'Crédit Agricole',    logo:'https://upload.wikimedia.org/wikipedia/fr/thumb/8/84/Logo_Cr%C3%A9dit_Agricole.svg/200px-Logo_Cr%C3%A9dit_Agricole.svg.png', bg:'#fefce8', border:'#fde047', accent:'#ca8a04', text:'#713f12' },
-  { key:'GMF',             name:'GMF',                logo:'https://upload.wikimedia.org/wikipedia/fr/thumb/4/44/GMF_logo_2021.svg/200px-GMF_logo_2021.svg.png',                          bg:'#eff6ff', border:'#93c5fd', accent:'#1d4ed8', text:'#1e3a5f' },
+  { key:'CE',  name:"Caisse d'Épargne",  logo:'https://upload.wikimedia.org/wikipedia/fr/thumb/b/b2/Caisse_d%27%C3%89pargne_2022.svg/200px-Caisse_d%27%C3%89pargne_2022.svg.png',  bg:'#f0fdf4', border:'#86efac', accent:'#16a34a', text:'#14532d' },
+  { key:'CA',  name:'Crédit Agricole',    logo:'https://upload.wikimedia.org/wikipedia/fr/thumb/8/84/Logo_Cr%C3%A9dit_Agricole.svg/200px-Logo_Cr%C3%A9dit_Agricole.svg.png',          bg:'#fefce8', border:'#fde047', accent:'#ca8a04', text:'#713f12' },
+  { key:'GMF', name:'GMF',                logo:'https://upload.wikimedia.org/wikipedia/fr/thumb/4/44/GMF_logo_2021.svg/200px-GMF_logo_2021.svg.png',                                   bg:'#eff6ff', border:'#93c5fd', accent:'#1d4ed8', text:'#1e3a5f' },
 ];
-
-// Which bank is open (-1 = none)
+const BANK_KEY_MAP = { 'CAISSE_EPARGNE':'CE', 'CREDIT_AGRICOLE':'CA' };
 let activeBankIdx = -1;
+let editingFsId   = null;
+let addBankKey    = 'CE';
 
-// Which placement fsId is in edit mode
-let editingPlacementId = null;
+function getBankKey(p) {
+  const raw = p.bank || 'CE';
+  return BANK_KEY_MAP[raw] || raw;
+}
 
-// ── RENDER BANK CARDS ──
 function renderPlacements() {
-  const all = placements.map(p => ({...p, bank: p.bank || 'CAISSE_EPARGNE'}));
-
-  // Global KPIs
+  const cardsEl = document.getElementById('bankCards');
+  if (!cardsEl) return;
+  const all = placements.map(p => ({ ...p, _bk: getBankKey(p) }));
   let totCur=0, totFirst=0, totProj=0;
   all.forEach(p => {
-    const first=p.history[0].value, cur=p.history.at(-1).value;
+    const cur=p.history.at(-1).value, first=p.history[0].value;
     totCur+=cur; totFirst+=first; totProj+=cur*(p.rate/100);
   });
   updatePlacementSummary(totCur, totFirst, totProj);
   document.getElementById('pCount').textContent = all.length;
-
-  const cardsEl = document.getElementById('bankCards');
-
-  // Build each bank as: [card] + optionally [detail below]
   const today = new Date().toISOString().split('T')[0];
-  const types = ['Livret A','LDDS','PEA','Assurance-vie','PER','CEL','Livret Jeune','Compte Épargne','Crypto','Immobilier','Autre'];
-  const emojis = [['🏦','Banque'],['💰','Cash'],['📈','Croissance'],['🔐','Sécurisé'],['🏠','Immobilier'],['₿','Crypto'],['🌱','Long terme'],['🎯','Objectif'],['⭐','Premium']];
-  const bankOpts = BANKS.map(b=>`<option value="${b.key}">${b.name}</option>`).join('');
-
+  const types=['Livret A','LDDS','PEA','Assurance-vie','PER','CEL','Livret Jeune','Compte Épargne','Crypto','Immobilier','Autre'];
+  const emojis=[['🏦','Banque'],['💰','Cash'],['📈','Croissance'],['🔐','Sécurisé'],['🏠','Immobilier'],['₿','Crypto'],['🌱','Long terme'],['🎯','Objectif'],['⭐','Premium']];
   let html = '';
-
   BANKS.forEach((bank, bidx) => {
-    const bp       = all.filter(p => p.bank === bank.key);
-    const total    = bp.reduce((s,p)=>s+p.history.at(-1).value,0);
-    const firstTot = bp.reduce((s,p)=>s+p.history[0].value,0);
-    const gain     = total - firstTot;
-    const isActive = activeBankIdx === bidx;
-
-    const gainHtml = bp.length>0
-      ? `<span class="bank-gain" style="background:${gain>=0?'var(--green-light)':'var(--red-light)'};color:${gain>=0?'var(--green)':'var(--red)'}">
-           ${gain>=0?'+':''}${fmtEur(gain)}</span>` : '';
-
-    // ─ Card ─
-    html += `<div class="bank-card${isActive?' active':''}"
-      data-bidx="${bidx}"
-      style="background:${bank.bg};border-color:${isActive?bank.accent:bank.border};
-             border-bottom-left-radius:${isActive?'0':'14px'};
-             border-bottom-right-radius:${isActive?'0':'14px'};
-             margin-bottom:${isActive?'0':'10px'};">
-      <div style="background:#fff;border:1px solid ${bank.border};padding:5px;border-radius:10px;width:52px;height:52px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-        <img src="${bank.logo}" alt="${bank.name}" style="max-width:42px;max-height:42px;object-fit:contain;" onerror="this.style.display='none';this.parentNode.textContent='🏦'">
+    const bp   = all.filter(p => p._bk === bank.key);
+    const tot  = bp.reduce((s,p)=>s+p.history.at(-1).value,0);
+    const ftot = bp.reduce((s,p)=>s+p.history[0].value,0);
+    const gain = tot-ftot;
+    const open = activeBankIdx===bidx;
+    html += `<div style="margin-bottom:12px">`;
+    html += `<div class="bcard" data-bidx="${bidx}" style="display:flex;align-items:center;gap:14px;padding:16px 18px;background:${bank.bg};border:2px solid ${open?bank.accent:bank.border};border-radius:${open?'14px 14px 0 0':'14px'};cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.07);transition:all .2s;">
+      <div style="width:52px;height:52px;flex-shrink:0;background:#fff;border:1px solid ${bank.border};border-radius:10px;display:flex;align-items:center;justify-content:center;overflow:hidden;padding:4px;">
+        <img src="${bank.logo}" style="max-width:42px;max-height:42px;object-fit:contain;" onerror="this.style.display='none';this.parentNode.textContent='🏦'">
       </div>
-      <div style="flex:1;">
-        <div class="bank-name" style="color:${bank.text}">${bank.name}</div>
-        <div class="bank-total" style="color:${bank.accent}">${bp.length>0?fmtEur(total):'—'}</div>
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-          <div class="bank-count">${bp.length} placement${bp.length>1?'s':''}</div>${gainHtml}
+      <div style="flex:1">
+        <div style="font-size:14px;font-weight:700;color:${bank.text}">${bank.name}</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:700;color:${bank.accent};margin:2px 0">${bp.length>0?fmtEur(tot):'—'}</div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <span style="font-size:11px;color:var(--text-muted)">${bp.length} placement${bp.length>1?'s':''}</span>
+          ${bp.length>0?`<span style="font-size:11px;font-weight:600;padding:2px 7px;border-radius:5px;background:${gain>=0?'var(--green-light)':'var(--red-light)'};color:${gain>=0?'var(--green)':'var(--red)'}">${gain>=0?'+':''}${fmtEur(gain)}</span>`:''}
         </div>
       </div>
-      <div style="font-size:22px;color:${isActive?bank.accent:'var(--text-dim)'};transition:transform .2s;transform:${isActive?'rotate(180deg)':'none'};">▾</div>
+      <div style="font-size:22px;color:${open?bank.accent:'var(--text-dim)'};transform:${open?'rotate(180deg)':'none'};transition:transform .2s">▾</div>
     </div>`;
-
-    // ─ Detail panel (only when active) ─
-    if (isActive) {
-      const placementsHtml = bp.length===0
-        ? `<div class="empty-state"><div class="icon">💰</div><p>Aucun placement. Cliquez sur "＋ Ajouter".</p></div>`
-        : bp.map(p => {
-            const first=p.history[0].value, cur=p.history.at(-1).value;
-            const gain=cur-first, pct=first>0?(gain/first)*100:0;
-            const isPos=gain>=0, sign=isPos?'+':'';
-            const barW=Math.min(Math.abs(pct)*4,100);
-            const annGain=cur*(p.rate/100);
-            const isEd = editingPlacementId===p.fsId;
-            const projBox=p.rate>0?`<div class="projection-box" style="margin-top:10px;"><div><div class="proj-label">📊 Projection fin d'année</div><div style="font-size:11px;color:var(--text-muted);margin-top:2px;">taux ${p.rate}%/an · +${fmtEur(annGain)}</div></div><div class="proj-value">${fmtEur(cur+annGain)}</div></div>`:'';
-            const chartHtml=buildPlacementChart(p.history,p.fsId);
-            const histHtml=p.history.length>1?`<div class="p-history" style="margin-top:10px;"><div class="p-history-title">Toutes les saisies (${p.history.length})</div><div class="p-history-list">${[...p.history].reverse().map((h,i,arr)=>{const prev=arr[i+1];const diff=prev?h.value-prev.value:0;const dHtml=prev?`<span style="color:${diff>=0?'var(--green)':'var(--red)'};font-size:10px;">${diff>=0?'+':''}${fmtEur(diff)}</span>`:`<span style="font-size:10px;color:var(--text-dim)">1ère</span>`;return `<div class="p-history-row"><span>${fmtDate(h.date)}</span><span style="display:flex;gap:10px;align-items:center;">${dHtml}<b>${fmtEur(h.value)}</b></span></div>`;}).join('')}</div></div>`:'';
-            const typeOpts=types.map(t=>`<option value="${t}"${t===p.type?' selected':''}>${t}</option>`).join('');
-            const emojiOpts=emojis.map(([v,l])=>`<option value="${v}"${v===p.emoji?' selected':''}>${v} ${l}</option>`).join('');
-            const bkOpts=BANKS.map(b=>`<option value="${b.key}"${b.key===(p.bank||'CAISSE_EPARGNE')?' selected':''}>${b.name}</option>`).join('');
-
-            return `<div class="placement-item">
-              <div class="placement-head">
-                <div class="placement-left">
-                  <div class="p-emoji">${p.emoji}</div>
-                  <div><div class="p-name">${escHtml(p.name)}</div>
-                    <div class="p-meta">${p.type}${p.rate?' · '+p.rate+'%/an':''} · ouvert le ${fmtDate(p.date)}</div>
-                  </div>
-                </div>
-                <div style="display:flex;align-items:center;gap:8px;">
-                  <div class="placement-right">
-                    <div class="p-current">${fmtEur(cur)}</div>
-                    <div class="p-gain ${isPos?'pos':'neg'}">${sign}${fmtEur(gain)} (${sign}${pct.toFixed(2)}%)</div>
-                  </div>
-                  <button class="btn-p-edit" data-fsid="${p.fsId}">⚙️</button>
-                  <button class="btn-delete" data-fsid="${p.fsId}">✕</button>
-                </div>
+    if (open) {
+      const bkOpts = BANKS.map(b=>`<option value="${b.key}">${b.name}</option>`).join('');
+      let pHtml = bp.length===0
+        ? `<div class="empty-state"><div class="icon">💰</div><p>Aucun placement. Cliquez sur "+ Ajouter".</p></div>`
+        : bp.map(p=>{
+          const cur=p.history.at(-1).value, first=p.history[0].value;
+          const gain=cur-first, pct=first>0?(gain/first)*100:0;
+          const isPos=gain>=0, sign=isPos?'+':'';
+          const barW=Math.min(Math.abs(pct)*4,100);
+          const annGain=cur*(p.rate/100);
+          const isEd=editingFsId===p.fsId;
+          const projBox=p.rate>0?`<div class="projection-box" style="margin-top:10px;"><div><div class="proj-label">📊 Projection fin d'année</div><div style="font-size:11px;color:var(--text-muted)">taux ${p.rate}%/an · +${fmtEur(annGain)}</div></div><div class="proj-value">${fmtEur(cur+annGain)}</div></div>`:'';
+          const chartHtml=buildPlacementChart(p.history,p.fsId);
+          const histHtml=p.history.length>1?`<div class="p-history" style="margin-top:10px;"><div class="p-history-title">Saisies (${p.history.length})</div><div class="p-history-list">${[...p.history].reverse().map((h,i,arr)=>{const prev=arr[i+1];const d=prev?h.value-prev.value:0;const dh=prev?`<span style="color:${d>=0?'var(--green)':'var(--red)'};font-size:10px">${d>=0?'+':''}${fmtEur(d)}</span>`:`<span style="font-size:10px;color:var(--text-dim)">1ère</span>`;return `<div class="p-history-row"><span>${fmtDate(h.date)}</span><span style="display:flex;gap:8px;align-items:center">${dh}<b>${fmtEur(h.value)}</b></span></div>`;}).join('')}</div></div>`:'';
+          const typeOpts=types.map(t=>`<option${t===p.type?' selected':''}>${t}</option>`).join('');
+          const emojiOpts=emojis.map(([v,l])=>`<option value="${v}"${v===p.emoji?' selected':''}>${v} ${l}</option>`).join('');
+          const myBkOpts=BANKS.map(b=>`<option value="${b.key}"${b.key===p._bk?' selected':''}>${b.name}</option>`).join('');
+          return `<div class="placement-item">
+            <div class="placement-head">
+              <div class="placement-left"><div class="p-emoji">${p.emoji}</div><div><div class="p-name">${escHtml(p.name)}</div><div class="p-meta">${p.type}${p.rate?' · '+p.rate+'%/an':''} · ${fmtDate(p.date)}</div></div></div>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <div class="placement-right"><div class="p-current">${fmtEur(cur)}</div><div class="p-gain ${isPos?'pos':'neg'}">${sign}${fmtEur(gain)} (${sign}${pct.toFixed(1)}%)</div></div>
+                <button class="btn-ped" data-id="${p.fsId}">⚙️</button>
+                <button class="btn-del" data-id="${p.fsId}">✕</button>
               </div>
-              ${isEd?`<div style="margin-top:12px;border-top:1px solid var(--border);padding-top:14px;">
-                <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--text-muted);margin-bottom:10px;">✏️ Modifier</div>
-                <div class="p-edit-grid">
-                  <div class="p-edit-group"><label>Nom</label><input type="text" id="pe-name-${p.fsId}" value="${escHtml(p.name)}"></div>
-                  <div class="p-edit-group"><label>Banque</label><select id="pe-bank-${p.fsId}">${bkOpts}</select></div>
-                  <div class="p-edit-group"><label>Type</label><select id="pe-type-${p.fsId}">${typeOpts}</select></div>
-                  <div class="p-edit-group"><label>Taux annuel (%)</label><input type="number" id="pe-rate-${p.fsId}" value="${p.rate||''}" step="0.01" placeholder="0.00"></div>
-                  <div class="p-edit-group"><label>Émoji</label><select id="pe-emoji-${p.fsId}">${emojiOpts}</select></div>
-                  <div class="p-edit-group"><label>Date d'ouverture</label><input type="date" id="pe-date-${p.fsId}" value="${p.date}"></div>
-                </div>
-                <div class="p-edit-actions">
-                  <button class="btn-p-save" data-fsid="${p.fsId}">✓ Enregistrer les modifications</button>
-                  <button class="btn-p-cancel" data-fsid="${p.fsId}">Annuler</button>
-                </div>
-              </div>`:''}
-              <div class="progress-wrap"><div class="progress-bar ${isPos?'bar-pos':'bar-neg'}" style="width:${barW}%"></div></div>
-              <div class="p-footer"><span>1ère saisie : <b>${fmtEur(first)}</b></span><span class="${isPos?'pos':'neg'}" style="font-weight:600;">${sign}${fmtEur(gain)}</span></div>
-              ${chartHtml}${projBox}${histHtml}
-              <div class="update-row">
-                <input type="date" id="pudate-${p.fsId}" value="${today}" style="width:130px;background:var(--bg2);border:1px solid var(--border2);border-radius:7px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12px;padding:7px 8px;">
-                <input type="number" id="pupdate-${p.fsId}" placeholder="Nouveau montant (€)" step="0.01">
-                <button class="btn-update" data-fsid="${p.fsId}">Mettre à jour</button>
+            </div>
+            ${isEd?`<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+              <div class="p-edit-grid">
+                <div class="p-edit-group"><label>Nom</label><input type="text" id="en-${p.fsId}" value="${escHtml(p.name)}"></div>
+                <div class="p-edit-group"><label>Banque</label><select id="eb-${p.fsId}">${myBkOpts}</select></div>
+                <div class="p-edit-group"><label>Type</label><select id="et-${p.fsId}">${typeOpts}</select></div>
+                <div class="p-edit-group"><label>Taux %</label><input type="number" id="er-${p.fsId}" value="${p.rate||''}" step="0.01" placeholder="0"></div>
+                <div class="p-edit-group"><label>Émoji</label><select id="ee-${p.fsId}">${emojiOpts}</select></div>
+                <div class="p-edit-group"><label>Date</label><input type="date" id="ed-${p.fsId}" value="${p.date}"></div>
               </div>
-            </div>`;
-          }).join('');
-
-      html += `<div class="bank-detail open" style="border-color:${bank.accent};margin-bottom:10px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
-          <div style="display:flex;align-items:center;gap:10px;">
-            <img src="${bank.logo}" style="width:24px;height:24px;object-fit:contain;background:#fff;border:1px solid ${bank.border};border-radius:5px;padding:2px;" onerror="this.style.display='none'">
-            <span style="font-size:14px;font-weight:700;color:${bank.accent}">${bank.name}</span>
+              <div style="display:flex;gap:8px;margin-top:10px">
+                <button class="btn-psv" data-id="${p.fsId}">✓ Enregistrer</button>
+                <button class="btn-pcx" data-id="${p.fsId}">Annuler</button>
+              </div>
+            </div>`:''}
+            <div class="progress-wrap"><div class="progress-bar ${isPos?'bar-pos':'bar-neg'}" style="width:${barW}%"></div></div>
+            <div class="p-footer"><span>Depuis : <b>${fmtEur(first)}</b></span><span class="${isPos?'pos':'neg'}" style="font-weight:600">${sign}${fmtEur(gain)}</span></div>
+            ${chartHtml}${projBox}${histHtml}
+            <div class="update-row">
+              <input type="date" id="ud-${p.fsId}" value="${today}" style="width:130px;background:var(--bg2);border:1px solid var(--border2);border-radius:7px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12px;padding:7px 8px">
+              <input type="number" id="uv-${p.fsId}" placeholder="Nouveau montant €" step="0.01">
+              <button class="btn-upd" data-id="${p.fsId}">Mettre à jour</button>
+            </div>
+          </div>`;
+        }).join('');
+      html += `<div style="background:var(--surface2);border:2px solid ${bank.accent};border-top:none;border-radius:0 0 14px 14px;padding:18px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <img src="${bank.logo}" style="width:22px;height:22px;object-fit:contain;background:#fff;border:1px solid ${bank.border};border-radius:5px;padding:2px" onerror="this.style.display='none'">
+            <b style="color:${bank.accent}">${bank.name}</b>
             <span style="font-size:11px;color:var(--text-muted)">${bp.length} placement${bp.length>1?'s':''}</span>
           </div>
-          <button class="btn-add-from-detail" data-bidx="${bidx}" style="background:${bank.accent};">＋ Ajouter un placement</button>
+          <button class="btn-opa" data-bidx="${bidx}" style="background:${bank.accent};color:#fff;border:none;border-radius:8px;font-family:Sora,sans-serif;font-size:12px;font-weight:600;padding:8px 14px;cursor:pointer">＋ Ajouter</button>
         </div>
-        ${placementsHtml}
+        ${pHtml}
       </div>`;
     }
+    html += '</div>';
   });
-
   cardsEl.innerHTML = html;
 
-  // ── Bind ALL events with addEventListener ──
-
-  // Bank card clicks
-  cardsEl.querySelectorAll('.bank-card').forEach(card => {
-    card.addEventListener('click', () => {
-      const bidx = parseInt(card.dataset.bidx);
-      activeBankIdx = activeBankIdx===bidx ? -1 : bidx;
-      editingPlacementId = null;
+  // Events
+  cardsEl.querySelectorAll('.bcard').forEach(el => {
+    el.addEventListener('click', () => {
+      const i=parseInt(el.dataset.bidx);
+      activeBankIdx=activeBankIdx===i?-1:i;
+      editingFsId=null;
       document.getElementById('placementForm').classList.add('hidden');
       renderPlacements();
     });
   });
-
-  // Add placement button
-  cardsEl.querySelectorAll('.btn-add-from-detail').forEach(btn => {
+  cardsEl.querySelectorAll('.btn-opa').forEach(btn => {
     btn.addEventListener('click', e => {
       e.stopPropagation();
-      const bidx = parseInt(btn.dataset.bidx);
-      const bank = BANKS[bidx];
-      currentAddBankKey = bank.key;
-      document.getElementById('pFormBankBadge').textContent = bank.name;
-      document.getElementById('pDate').value = today;
-      ['pName','pAmount','pRate'].forEach(id => document.getElementById(id).value='');
-      const form = document.getElementById('placementForm');
-      form.classList.remove('hidden');
-      setTimeout(()=>form.scrollIntoView({behavior:'smooth',block:'nearest'}),50);
+      const b=BANKS[parseInt(btn.dataset.bidx)];
+      addBankKey=b.key;
+      document.getElementById('pFormBankBadge').textContent=b.name;
+      document.getElementById('pDate').value=today;
+      ['pName','pAmount','pRate'].forEach(id=>document.getElementById(id).value='');
+      const f=document.getElementById('placementForm');
+      f.classList.remove('hidden');
+      setTimeout(()=>f.scrollIntoView({behavior:'smooth',block:'nearest'}),50);
     });
   });
-
-  // Edit toggle
-  cardsEl.querySelectorAll('.btn-p-edit').forEach(btn => {
+  cardsEl.querySelectorAll('.btn-ped').forEach(btn => {
     btn.addEventListener('click', e => {
       e.stopPropagation();
-      editingPlacementId = editingPlacementId===btn.dataset.fsid ? null : btn.dataset.fsid;
+      editingFsId=editingFsId===btn.dataset.id?null:btn.dataset.id;
       renderPlacements();
     });
   });
-
-  // Save edit
-  cardsEl.querySelectorAll('.btn-p-save').forEach(btn => {
-    btn.addEventListener('click', async e => {
-      e.stopPropagation();
-      const id=btn.dataset.fsid;
-      const name =document.getElementById('pe-name-'+id)?.value.trim();
-      const type =document.getElementById('pe-type-'+id)?.value;
-      const emoji=document.getElementById('pe-emoji-'+id)?.value;
-      const rate =parseFloat(document.getElementById('pe-rate-'+id)?.value)||0;
-      const date =document.getElementById('pe-date-'+id)?.value;
-      const bk   =document.getElementById('pe-bank-'+id)?.value||'CAISSE_EPARGNE';
-      if (!name){showNotif('⚠️ Le nom est requis');return;}
-      await updateDoc(doc(db,'users',currentUser.uid,'placements',id),{name,type,emoji,rate,date,bank:bk});
-      editingPlacementId=null;
-      if(bk!==BANKS[activeBankIdx]?.key) activeBankIdx=BANKS.findIndex(b=>b.key===bk);
-      showNotif('✅ Placement mis à jour');
-    });
-  });
-
-  // Cancel edit
-  cardsEl.querySelectorAll('.btn-p-cancel').forEach(btn => {
-    btn.addEventListener('click', e => {
-      e.stopPropagation();
-      editingPlacementId=null;
-      renderPlacements();
-    });
-  });
-
-  // Delete
-  cardsEl.querySelectorAll('.btn-delete').forEach(btn => {
+  cardsEl.querySelectorAll('.btn-del').forEach(btn => {
     btn.addEventListener('click', async e => {
       e.stopPropagation();
       if(!confirm('Supprimer ce placement ?'))return;
-      await deleteDoc(doc(db,'users',currentUser.uid,'placements',btn.dataset.fsid));
-      showNotif('🗑️ Placement supprimé');
+      await deleteDoc(doc(db,'users',currentUser.uid,'placements',btn.dataset.id));
+      showNotif('🗑️ Supprimé');
     });
   });
-
-  // Update montant
-  cardsEl.querySelectorAll('.btn-update').forEach(btn => {
+  cardsEl.querySelectorAll('.btn-psv').forEach(btn => {
+    btn.addEventListener('click', async e => {
+      e.stopPropagation();
+      const id=btn.dataset.id;
+      const nm=document.getElementById('en-'+id)?.value.trim();
+      if(!nm){showNotif('⚠️ Nom requis');return;}
+      const ty=document.getElementById('et-'+id)?.value;
+      const em=document.getElementById('ee-'+id)?.value;
+      const ra=parseFloat(document.getElementById('er-'+id)?.value)||0;
+      const dt=document.getElementById('ed-'+id)?.value;
+      const bk=document.getElementById('eb-'+id)?.value||'CE';
+      await updateDoc(doc(db,'users',currentUser.uid,'placements',id),{name:nm,type:ty,emoji:em,rate:ra,date:dt,bank:bk});
+      editingFsId=null;
+      activeBankIdx=BANKS.findIndex(b=>b.key===bk);
+      showNotif('✅ Mis à jour');
+    });
+  });
+  cardsEl.querySelectorAll('.btn-pcx').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      editingFsId=null;
+      renderPlacements();
+    });
+  });
+  cardsEl.querySelectorAll('.btn-upd').forEach(btn => {
     btn.addEventListener('click', async () => {
-      const id  = btn.dataset.fsid;
-      const val = parseFloat(document.getElementById('pupdate-'+id)?.value);
-      const dt  = document.getElementById('pudate-'+id)?.value;
+      const id=btn.dataset.id;
+      const val=parseFloat(document.getElementById('uv-'+id)?.value);
+      const dt=document.getElementById('ud-'+id)?.value;
       if(isNaN(val)||val<0){showNotif('⚠️ Montant invalide');return;}
       if(!dt){showNotif('⚠️ Date requise');return;}
       const p=all.find(x=>x.fsId===id);
       if(!p)return;
-      const history=[...p.history];
-      const ex=history.find(h=>h.date===dt);
-      if(ex) ex.value=val; else history.push({date:dt,value:val});
-      history.sort((a,b)=>a.date.localeCompare(b.date));
-      await updateDoc(doc(db,'users',currentUser.uid,'placements',id),{history});
-      showNotif('💰 Valeur mise à jour');
+      const h=[...p.history];
+      const ex=h.find(x=>x.date===dt);
+      if(ex)ex.value=val;else h.push({date:dt,value:val});
+      h.sort((a,b)=>a.date.localeCompare(b.date));
+      await updateDoc(doc(db,'users',currentUser.uid,'placements',id),{history:h});
+      showNotif('💰 Mis à jour');
     });
   });
 }
 
-// Bank key stored in JS variable (never in DOM)
-let currentAddBankKey = 'CAISSE_EPARGNE';
-
-// ── ADD PLACEMENT ──
 window.addPlacement = async () => {
-  const date  = document.getElementById('pDate').value;
-  const name  = document.getElementById('pName').value.trim();
-  const type  = document.getElementById('pType').value;
-  const emoji = document.getElementById('pEmoji').value;
-  const amount= parseFloat(document.getElementById('pAmount').value);
-  const rate  = parseFloat(document.getElementById('pRate').value)||0;
-  const bank  = currentAddBankKey || 'CAISSE_EPARGNE';
-  if (!date||!name||isNaN(amount)||amount<=0) { showNotif('⚠️ Date, nom et montant requis'); return; }
-  const btn = document.getElementById('btnAddPlacement');
-  btn.disabled=true; btn.textContent='Enregistrement…';
+  const date=document.getElementById('pDate').value;
+  const name=document.getElementById('pName').value.trim();
+  const type=document.getElementById('pType').value;
+  const emoji=document.getElementById('pEmoji').value;
+  const amount=parseFloat(document.getElementById('pAmount').value);
+  const rate=parseFloat(document.getElementById('pRate').value)||0;
+  if(!date||!name||isNaN(amount)||amount<=0){showNotif('⚠️ Date, nom et montant requis');return;}
+  const btn=document.getElementById('btnAddPlacement');
+  btn.disabled=true;btn.textContent='Enregistrement…';
   try {
     await addDoc(collection(db,'users',currentUser.uid,'placements'),{
-      date, name, type, emoji, rate, bank,
-      history:[{date, value:amount}],
-      createdAt: serverTimestamp()
+      date,name,type,emoji,rate,bank:addBankKey,
+      history:[{date,value:amount}],createdAt:serverTimestamp()
     });
-    ['pName','pAmount','pRate'].forEach(id => document.getElementById(id).value='');
+    ['pName','pAmount','pRate'].forEach(id=>document.getElementById(id).value='');
     document.getElementById('placementForm').classList.add('hidden');
     showNotif('✅ Placement ajouté');
-  } catch(err) { showNotif('❌ '+err.message); }
-  btn.disabled=false; btn.textContent='Enregistrer';
+  } catch(err){showNotif('❌ '+err.message);}
+  btn.disabled=false;btn.textContent='Enregistrer';
 };
 
-// ── ADD PLACEMENT ──
 function updatePlacementSummary(cur,init,proj) {
-  const gain=cur-init, pct=init>0?(gain/init)*100:0, sign=gain>=0?'+':'';
+  const gain=cur-init,pct=init>0?(gain/init)*100:0,sign=gain>=0?'+':'';
   document.getElementById('pTotalCurrent').textContent=fmtEur(cur);
   document.getElementById('pTotalInitial').textContent='initial : '+fmtEur(init);
-  const gEl=document.getElementById('pTotalGain'); gEl.textContent=sign+fmtEur(gain); gEl.style.color=gain>=0?'var(--green)':'var(--red)';
-  const pEl=document.getElementById('pTotalPct'); pEl.textContent=sign+pct.toFixed(2)+'%'; pEl.style.color=gain>=0?'var(--green)':'var(--red)';
+  const g=document.getElementById('pTotalGain');g.textContent=sign+fmtEur(gain);g.style.color=gain>=0?'var(--green)':'var(--red)';
+  const pp=document.getElementById('pTotalPct');pp.textContent=sign+pct.toFixed(2)+'%';pp.style.color=gain>=0?'var(--green)':'var(--red)';
   document.getElementById('pProjection').textContent=proj>0?'+'+fmtEur(proj):fmtEur(proj);
 }
 
