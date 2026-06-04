@@ -227,29 +227,29 @@ main { max-width: 960px; margin: 0 auto; padding: 20px 16px 40px; }
     <div class="auth-sub">Accédez à vos données depuis n'importe quel appareil.</div>
 
     <div class="auth-tabs">
-      <button class="auth-tab active" id="tabLogin" onclick="switchAuthTab('login')">Connexion</button>
-      <button class="auth-tab" id="tabRegister" onclick="switchAuthTab('register')">Créer un compte</button>
+      <button class="auth-tab active" id="tabLogin">Connexion</button>
+      <button class="auth-tab" id="tabRegister">Créer un compte</button>
     </div>
 
     <div class="auth-error" id="authError"></div>
 
     <div class="auth-field">
       <label>Adresse e-mail</label>
-      <input type="email" id="authEmail" placeholder="exemple@email.com" onkeydown="if(event.key==='Enter') authSubmit()">
+      <input type="email" id="authEmail" placeholder="exemple@email.com">
     </div>
     <div class="auth-field">
       <label>Mot de passe</label>
-      <input type="password" id="authPassword" placeholder="••••••••" onkeydown="if(event.key==='Enter') authSubmit()">
+      <input type="password" id="authPassword" placeholder="••••••••">
     </div>
     <div class="auth-field" id="authConfirmWrap" style="display:none">
       <label>Confirmer le mot de passe</label>
-      <input type="password" id="authConfirm" placeholder="••••••••" onkeydown="if(event.key==='Enter') authSubmit()">
+      <input type="password" id="authConfirm" placeholder="••••••••">
     </div>
 
-    <button class="btn-auth" id="btnAuth" onclick="authSubmit()">Se connecter</button>
+    <button class="btn-auth" id="btnAuth">Se connecter</button>
 
     <div style="text-align:center; margin-top:16px;">
-      <button onclick="forgotPassword()" style="background:none;border:none;font-size:12px;color:var(--text-muted);cursor:pointer;text-decoration:underline;" id="forgotBtn">Mot de passe oublié ?</button>
+      <button id="forgotBtn" style="background:none;border:none;font-size:12px;color:var(--text-muted);cursor:pointer;text-decoration:underline;">Mot de passe oublié ?</button>
     </div>
   </div>
 </div>
@@ -483,7 +483,16 @@ let unsubPlacements = null;
 // ── AUTH STATE ──
 let authMode = 'login';
 
-window.switchAuthTab = mode => {
+function showAuthError(msg) {
+  const el = document.getElementById('authError');
+  el.style.background = 'var(--red-light)';
+  el.style.borderColor = '#fca5a5';
+  el.style.color = 'var(--red)';
+  el.textContent = '⚠️ ' + msg;
+  el.classList.add('show');
+}
+
+function switchAuthTab(mode) {
   authMode = mode;
   document.getElementById('tabLogin').classList.toggle('active', mode === 'login');
   document.getElementById('tabRegister').classList.toggle('active', mode === 'register');
@@ -491,24 +500,19 @@ window.switchAuthTab = mode => {
   document.getElementById('btnAuth').textContent = mode === 'login' ? 'Se connecter' : 'Créer mon compte';
   document.getElementById('forgotBtn').style.display = mode === 'login' ? 'block' : 'none';
   document.getElementById('authError').classList.remove('show');
-};
+}
 
-window.authSubmit = async () => {
+async function authSubmit() {
   const email = document.getElementById('authEmail').value.trim();
   const pwd   = document.getElementById('authPassword').value;
   const conf  = document.getElementById('authConfirm').value;
-  const errEl = document.getElementById('authError');
   const btn   = document.getElementById('btnAuth');
-
-  errEl.classList.remove('show');
-
+  document.getElementById('authError').classList.remove('show');
   if (!email || !pwd) { showAuthError('Veuillez remplir tous les champs.'); return; }
   if (authMode === 'register' && pwd !== conf) { showAuthError('Les mots de passe ne correspondent pas.'); return; }
   if (pwd.length < 6) { showAuthError('Le mot de passe doit contenir au moins 6 caractères.'); return; }
-
   btn.disabled = true;
-  btn.textContent = authMode === 'login' ? 'Connexion…' : 'Création…';
-
+  btn.textContent = authMode === 'login' ? 'Connexion…' : 'Création du compte…';
   try {
     if (authMode === 'login') {
       await signInWithEmailAndPassword(auth, email, pwd);
@@ -517,37 +521,46 @@ window.authSubmit = async () => {
     }
   } catch(e) {
     const msgs = {
-      'auth/user-not-found':       'Aucun compte trouvé avec cet e-mail.',
-      'auth/wrong-password':       'Mot de passe incorrect.',
-      'auth/invalid-credential':   'E-mail ou mot de passe incorrect.',
-      'auth/email-already-in-use': 'Un compte existe déjà avec cet e-mail.',
-      'auth/invalid-email':        'Adresse e-mail invalide.',
-      'auth/too-many-requests':    'Trop de tentatives. Réessayez dans quelques minutes.',
+      'auth/user-not-found':         'Aucun compte trouvé avec cet e-mail.',
+      'auth/wrong-password':         'Mot de passe incorrect.',
+      'auth/invalid-credential':     'E-mail ou mot de passe incorrect.',
+      'auth/email-already-in-use':   'Un compte existe déjà avec cet e-mail.',
+      'auth/invalid-email':          'Adresse e-mail invalide.',
+      'auth/too-many-requests':      'Trop de tentatives. Réessayez dans quelques minutes.',
       'auth/network-request-failed': 'Erreur réseau. Vérifiez votre connexion.',
     };
-    showAuthError(msgs[e.code] || 'Erreur : ' + e.message);
+    showAuthError(msgs[e.code] || ('Erreur (' + e.code + ') : ' + e.message));
+    btn.disabled = false;
+    btn.textContent = authMode === 'login' ? 'Se connecter' : 'Créer mon compte';
   }
-  btn.disabled = false;
-  btn.textContent = authMode === 'login' ? 'Se connecter' : 'Créer mon compte';
-};
-
-function showAuthError(msg) {
-  const el = document.getElementById('authError');
-  el.textContent = '⚠️ ' + msg;
-  el.classList.add('show');
 }
 
-window.forgotPassword = async () => {
+async function forgotPassword() {
   const email = document.getElementById('authEmail').value.trim();
-  if (!email) { showAuthError('Entrez votre e-mail pour réinitialiser votre mot de passe.'); return; }
+  if (!email) { showAuthError("Entrez votre e-mail pour réinitialiser votre mot de passe."); return; }
   try {
     await sendPasswordResetEmail(auth, email);
-    document.getElementById('authError').classList.remove('show');
-    showNotif('📧 E-mail de réinitialisation envoyé !');
+    const el = document.getElementById('authError');
+    el.style.background = 'var(--green-light)';
+    el.style.borderColor = '#bbf7d0';
+    el.style.color = 'var(--green)';
+    el.textContent = '📧 E-mail de réinitialisation envoyé !';
+    el.classList.add('show');
   } catch(e) {
-    showAuthError('Impossible d'envoyer l'e-mail. Vérifiez l'adresse.');
+    showAuthError("Impossible d'envoyer l'e-mail. Vérifiez l'adresse.");
   }
-};
+}
+
+// Bind auth events (module scope - cannot use onclick in HTML)
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('tabLogin').addEventListener('click', () => switchAuthTab('login'));
+  document.getElementById('tabRegister').addEventListener('click', () => switchAuthTab('register'));
+  document.getElementById('btnAuth').addEventListener('click', authSubmit);
+  document.getElementById('forgotBtn').addEventListener('click', forgotPassword);
+  ['authEmail','authPassword','authConfirm'].forEach(id => {
+    document.getElementById(id).addEventListener('keydown', e => { if(e.key==='Enter') authSubmit(); });
+  });
+});
 
 window.signOut = async () => {
   if (unsubEntries) unsubEntries();
