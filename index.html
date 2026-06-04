@@ -627,6 +627,7 @@ main {
   margin-top: 10px;
   border-top: 1px solid var(--border);
   padding-top: 10px;
+  flex-wrap: wrap;
 }
 
 .update-row input {
@@ -770,6 +771,45 @@ main {
 /* pos/neg text */
 .pos { color: var(--green); }
 .neg { color: var(--red); }
+
+/* ── PLACEMENT CHART ── */
+.p-chart-wrap {
+  margin-top: 12px;
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
+
+.p-chart-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.p-chart-svg-wrap {
+  width: 100%;
+  height: 90px;
+  position: relative;
+}
+
+.p-chart-svg-wrap svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.p-chart-axis {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--text-dim);
+}
 
 .hidden { display: none; }
 
@@ -999,22 +1039,12 @@ main {
     </div>
     <div class="form-row">
       <div class="form-group">
-        <label>Montant initial (€)</label>
-        <input type="number" id="pInitial" placeholder="1 000.00" step="0.01">
+        <label>Montant (€)</label>
+        <input type="number" id="pAmount" placeholder="1 000.00" step="0.01">
       </div>
       <div class="form-group">
-        <label>Valeur actuelle (€)</label>
-        <input type="number" id="pCurrent" placeholder="1 030.00" step="0.01">
-      </div>
-    </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label>Taux annuel (%)</label>
+        <label>Taux annuel (%) — optionnel</label>
         <input type="number" id="pRate" placeholder="3.00" step="0.01">
-      </div>
-      <div class="form-group">
-        <label>Objectif (€) – optionnel</label>
-        <input type="number" id="pTarget" placeholder="10 000.00" step="0.01">
       </div>
     </div>
     <button class="btn-add" onclick="addPlacement()">Ajouter le placement</button>
@@ -1280,47 +1310,49 @@ function drawMainChart() {
 //  PLACEMENTS
 // ══════════════════════════════════════════
 function addPlacement() {
-  const date    = document.getElementById('pDate').value;
-  const name    = document.getElementById('pName').value.trim();
-  const type    = document.getElementById('pType').value;
-  const emoji   = document.getElementById('pEmoji').value;
-  const initial = parseFloat(document.getElementById('pInitial').value);
-  const current = parseFloat(document.getElementById('pCurrent').value);
-  const rate    = parseFloat(document.getElementById('pRate').value) || 0;
-  const target  = parseFloat(document.getElementById('pTarget').value) || 0;
+  const date  = document.getElementById('pDate').value;
+  const name  = document.getElementById('pName').value.trim();
+  const type  = document.getElementById('pType').value;
+  const emoji = document.getElementById('pEmoji').value;
+  const amount= parseFloat(document.getElementById('pAmount').value);
+  const rate  = parseFloat(document.getElementById('pRate').value) || 0;
 
-  if (!date || !name || isNaN(initial) || isNaN(current)) {
-    showNotif('⚠️ Date, nom, montant initial et valeur actuelle sont obligatoires'); return;
+  if (!date || !name || isNaN(amount) || amount <= 0) {
+    showNotif('⚠️ Date, nom et montant sont obligatoires'); return;
   }
 
   const p = {
     id: Date.now(),
-    date, name, type, emoji, initial, current, rate, target,
-    history: [{ date: new Date().toISOString().split('T')[0], value: current }]
+    date, name, type, emoji, rate,
+    // history = timeline of { date, value } entries — first entry is the creation montant
+    history: [{ date, value: amount }]
   };
 
   placements.push(p);
   savePlacements();
   renderPlacements();
-  ['pName','pInitial','pCurrent','pRate','pTarget'].forEach(id => document.getElementById(id).value = '');
+  ['pName','pAmount','pRate'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('placementForm').classList.add('hidden');
   showNotif('✅ Placement ajouté');
 }
 
 function updatePlacement(id) {
-  const inp = document.getElementById('pupdate-' + id);
-  const val = parseFloat(inp.value);
+  const dateInp = document.getElementById('pudate-' + id);
+  const valInp  = document.getElementById('pupdate-' + id);
+  const val  = parseFloat(valInp.value);
+  const date = dateInp.value;
   if (isNaN(val) || val < 0) { showNotif('⚠️ Montant invalide'); return; }
+  if (!date) { showNotif('⚠️ Date requise'); return; }
   const p = placements.find(pl => pl.id === id);
   if (!p) return;
-  p.current = val;
-  const today = new Date().toISOString().split('T')[0];
-  const last  = p.history.at(-1);
-  if (last && last.date === today) last.value = val;
-  else p.history.push({ date: today, value: val });
+  // Replace entry for same date or add new
+  const existing = p.history.find(h => h.date === date);
+  if (existing) existing.value = val;
+  else p.history.push({ date, value: val });
+  p.history.sort((a, b) => a.date.localeCompare(b.date));
   savePlacements();
   renderPlacements();
-  inp.value = '';
+  valInp.value = '';
   showNotif('💰 Valeur mise à jour');
 }
 
@@ -1335,13 +1367,79 @@ function savePlacements() {
   localStorage.setItem('v2_placements', JSON.stringify(placements));
 }
 
+// Build an inline SVG line chart for a placement's history
+function buildPlacementChart(history, id) {
+  if (history.length < 2) return '';
+  const W = 500, H = 80, padL = 4, padR = 4, padT = 6, padB = 6;
+  const values = history.map(h => h.value);
+  const min = Math.min(...values) * 0.997;
+  const max = Math.max(...values) * 1.003;
+  const range = max - min || 1;
+  const pts = history.map((h, i) => {
+    const x = padL + (i / (history.length - 1)) * (W - padL - padR);
+    const y = padT + (1 - (h.value - min) / range) * (H - padT - padB);
+    return [x, y];
+  });
+  const isUp = values.at(-1) >= values[0];
+  const col  = isUp ? '#16a34a' : '#dc2626';
+  const gradId = 'pg' + id;
+  const lineD = 'M' + pts.map(p => p.join(',')).join(' L');
+  const fillD = lineD + ` L${pts.at(-1)[0]},${H} L${pts[0][0]},${H} Z`;
+
+  // Y-axis labels
+  const yMin = Math.min(...values).toLocaleString('fr-FR',{maximumFractionDigits:0});
+  const yMax = Math.max(...values).toLocaleString('fr-FR',{maximumFractionDigits:0});
+
+  // X-axis: first & last date
+  const xFirst = fmtDate(history[0].date);
+  const xLast  = fmtDate(history.at(-1).date);
+
+  // Dots with tooltips
+  const dots = pts.map((p, i) => {
+    return `<circle cx="${p[0]}" cy="${p[1]}" r="3.5" fill="${col}" stroke="white" stroke-width="1.5">
+      <title>${fmtDate(history[i].date)} : ${fmtEur(history[i].value)}</title>
+    </circle>`;
+  }).join('');
+
+  return `
+  <div class="p-chart-wrap">
+    <div class="p-chart-label">
+      <span>Évolution du montant</span>
+      <span style="color:${col}; font-weight:700;">${isUp ? '▲' : '▼'} ${((values.at(-1) - values[0]) / values[0] * 100).toFixed(2)}%</span>
+    </div>
+    <div class="p-chart-svg-wrap">
+      <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="overflow:visible">
+        <defs>
+          <linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="${col}" stop-opacity="0.15"/>
+            <stop offset="100%" stop-color="${col}" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <!-- grid lines -->
+        <line x1="${padL}" y1="${padT}" x2="${W-padR}" y2="${padT}" stroke="var(--border)" stroke-width="0.5"/>
+        <line x1="${padL}" y1="${H-padB}" x2="${W-padR}" y2="${H-padB}" stroke="var(--border)" stroke-width="0.5"/>
+        <!-- area fill -->
+        <path d="${fillD}" fill="url(#${gradId})"/>
+        <!-- line -->
+        <path d="${lineD}" fill="none" stroke="${col}" stroke-width="2" stroke-linejoin="round"/>
+        <!-- dots -->
+        ${dots}
+      </svg>
+    </div>
+    <div class="p-chart-axis">
+      <span>${xFirst} · ${yMin} €</span>
+      <span>${xLast} · ${yMax} €</span>
+    </div>
+  </div>`;
+}
+
 function renderPlacements() {
   const list = document.getElementById('placementList');
   const n = placements.length;
   document.getElementById('pCount').textContent = n;
   document.getElementById('pCountBadge').textContent = n + ' placement' + (n > 1 ? 's' : '');
 
-  let totCurrent = 0, totInitial = 0, totProjection = 0;
+  let totCurrent = 0, totFirst = 0, totProjection = 0;
 
   if (n === 0) {
     list.innerHTML = `<div class="empty-state"><div class="icon">🏦</div><p>Aucun placement. Ajoutez votre première épargne.</p></div>`;
@@ -1349,49 +1447,51 @@ function renderPlacements() {
     return;
   }
 
-  list.innerHTML = placements.map(p => {
-    const gain  = p.current - p.initial;
-    const pct   = p.initial > 0 ? (gain / p.initial) * 100 : 0;
-    const isPos = gain >= 0;
-    const sign  = isPos ? '+' : '';
+  const today = new Date().toISOString().split('T')[0];
 
-    totCurrent   += p.current;
-    totInitial   += p.initial;
-    const annualGain = p.current * (p.rate / 100);
+  list.innerHTML = placements.map(p => {
+    const first   = p.history[0].value;
+    const current = p.history.at(-1).value;
+    const gain    = current - first;
+    const pct     = first > 0 ? (gain / first) * 100 : 0;
+    const isPos   = gain >= 0;
+    const sign    = isPos ? '+' : '';
+
+    totCurrent    += current;
+    totFirst      += first;
+    const annualGain = current * (p.rate / 100);
     totProjection += annualGain;
 
-    // Progress bar: % of gain relative to initial (capped at 50% → full bar)
     const barW = Math.min(Math.abs(pct) * 4, 100);
 
-    // Projection end-of-year
-    const projVal = p.current + annualGain;
+    // Projection
     const projBox = p.rate > 0 ? `
-    <div class="projection-box">
+    <div class="projection-box" style="margin-top:10px;">
       <div>
         <div class="proj-label">📊 Projection fin d'année</div>
         <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">taux ${p.rate}%/an · +${fmtEur(annualGain)}</div>
       </div>
-      <div class="proj-value">${fmtEur(projVal)}</div>
+      <div class="proj-value">${fmtEur(current + annualGain)}</div>
     </div>` : '';
 
-    // Target bar
-    const targetBox = p.target > 0 ? (() => {
-      const tPct = Math.min((p.current / p.target) * 100, 100);
-      return `<div style="margin-top:10px; border-top:1px solid var(--border); padding-top:10px;">
-        <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-muted); margin-bottom:4px; font-family:'JetBrains Mono',monospace;">
-          <span>Objectif</span><span>${fmtEur(p.current)} / ${fmtEur(p.target)} (${tPct.toFixed(0)}%)</span>
-        </div>
-        <div class="progress-wrap"><div class="progress-bar bar-pos" style="width:${tPct}%; background:linear-gradient(90deg,#b45309,#d97706);"></div></div>
-      </div>`;
-    })() : '';
+    // Chart
+    const chartHtml = buildPlacementChart(p.history, p.id);
 
-    // History mini
+    // History table
     const histHtml = p.history.length > 1 ? `
-    <div class="p-history">
-      <div class="p-history-title">Historique des mises à jour (${p.history.length})</div>
+    <div class="p-history" style="margin-top:10px;">
+      <div class="p-history-title">Toutes les saisies (${p.history.length})</div>
       <div class="p-history-list">
-        ${[...p.history].reverse().map(h => {
-          return `<div class="p-history-row"><span>${fmtDate(h.date)}</span><span>${fmtEur(h.value)}</span></div>`;
+        ${[...p.history].reverse().map((h, i, arr) => {
+          const prev = arr[i + 1];
+          const diff = prev ? h.value - prev.value : 0;
+          const diffHtml = prev
+            ? `<span style="color:${diff >= 0 ? 'var(--green)' : 'var(--red)'}; font-size:10px;">${diff >= 0 ? '+' : ''}${fmtEur(diff)}</span>`
+            : `<span style="font-size:10px; color:var(--text-dim)">1ère</span>`;
+          return `<div class="p-history-row">
+            <span>${fmtDate(h.date)}</span>
+            <span style="display:flex; gap:10px; align-items:center;">${diffHtml}<b>${fmtEur(h.value)}</b></span>
+          </div>`;
         }).join('')}
       </div>
     </div>` : '';
@@ -1408,7 +1508,7 @@ function renderPlacements() {
         </div>
         <div style="display:flex; align-items:center; gap:10px;">
           <div class="placement-right">
-            <div class="p-current">${fmtEur(p.current)}</div>
+            <div class="p-current">${fmtEur(current)}</div>
             <div class="p-gain ${isPos ? 'pos' : 'neg'}">${sign}${fmtEur(gain)} (${sign}${pct.toFixed(2)}%)</div>
           </div>
           <button class="btn-delete" onclick="deletePlacement(${p.id})">✕</button>
@@ -1418,25 +1518,25 @@ function renderPlacements() {
       <div class="progress-wrap">
         <div class="progress-bar ${isPos ? 'bar-pos' : 'bar-neg'}" style="width:${barW}%"></div>
       </div>
-
       <div class="p-footer">
-        <span>Initial : <b>${fmtEur(p.initial)}</b></span>
+        <span>1ère saisie : <b>${fmtEur(first)}</b></span>
         <span class="${isPos ? 'pos' : 'neg'}" style="font-weight:600;">${sign}${fmtEur(gain)}</span>
       </div>
 
+      ${chartHtml}
       ${projBox}
-      ${targetBox}
       ${histHtml}
 
       <div class="update-row">
-        <input type="number" id="pupdate-${p.id}" placeholder="Nouvelle valeur actuelle (€)" step="0.01"
+        <input type="date" id="pudate-${p.id}" value="${today}" style="width:130px; background:var(--bg2); border:1px solid var(--border2); border-radius:7px; color:var(--text); font-family:'JetBrains Mono',monospace; font-size:12px; padding:7px 8px;">
+        <input type="number" id="pupdate-${p.id}" placeholder="Nouveau montant (€)" step="0.01"
           onkeydown="if(event.key==='Enter') updatePlacement(${p.id})">
         <button class="btn-update" onclick="updatePlacement(${p.id})">Mettre à jour</button>
       </div>
     </div>`;
   }).join('');
 
-  updatePlacementSummary(totCurrent, totInitial, totProjection);
+  updatePlacementSummary(totCurrent, totFirst, totProjection);
 }
 
 function updatePlacementSummary(cur, init, proj) {
@@ -1455,7 +1555,7 @@ function updatePlacementSummary(cur, init, proj) {
   pEl.textContent = sign + pct.toFixed(2) + '%';
   pEl.style.color = gain >= 0 ? 'var(--green)' : 'var(--red)';
 
-  document.getElementById('pProjection').textContent = '+' + fmtEur(proj);
+  document.getElementById('pProjection').textContent = proj > 0 ? '+' + fmtEur(proj) : fmtEur(proj);
   document.getElementById('pCount').textContent = placements.length;
 }
 
