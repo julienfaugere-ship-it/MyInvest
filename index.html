@@ -354,7 +354,18 @@ main { max-width: 960px; margin: 0 auto; padding: 20px 16px 40px; }
         <div class="form-title">📊 Nouvelle saisie</div>
         <div class="form-row">
           <div class="form-group"><label>Date</label><input type="date" id="sDate"></div>
-          <div class="form-group"><label>Nom / Libellé</label><input type="text" id="sName" placeholder="ex: L'Oréal, LVMH…"></div>
+          <div class="form-group">
+            <label>Nom / Libellé</label>
+            <select id="sName" onchange="handleSNameChange(this)">
+              <option value="">— Choisir —</option>
+              <option value="PEE - L'OREAL">PEE - L'ORÉAL</option>
+              <option value="PEE - CHAMORIN">PEE - CHAMORIN</option>
+              <option value="PERCOL - L'OREAL">PERCOL - L'ORÉAL</option>
+              <option value="RCD - L'OREAL">RCD - L'ORÉAL</option>
+              <option value="__custom__">Autre (saisie libre)…</option>
+            </select>
+            <input type="text" id="sNameCustom" placeholder="Saisir un libellé…" style="display:none; margin-top:6px;">
+          </div>
         </div>
         <div class="form-row">
           <div class="form-group"><label>Valorisation (€)</label><input type="number" id="sValue" placeholder="1 500.00" step="0.01"></div>
@@ -672,9 +683,30 @@ function drawLorealMock() {
 }
 
 // ── STOCK ENTRIES ──
+
+// ── NAME → COLOR MAPPING ──
+const NAME_COLORS = {
+  "PEE - L'OREAL":    { bg: '#fef3c7', border: '#fcd34d', text: '#92400e', dot: '#b45309' },
+  "PEE - CHAMORIN":   { bg: '#e0f2fe', border: '#7dd3fc', text: '#075985', dot: '#0284c7' },
+  "PERCOL - L'OREAL": { bg: '#fef9c3', border: '#fde047', text: '#713f12', dot: '#ca8a04' },
+  "RCD - L'OREAL":    { bg: '#ffedd5', border: '#fdba74', text: '#7c2d12', dot: '#ea580c' },
+};
+
+function getNameColor(name) {
+  return NAME_COLORS[name] || { bg: 'var(--bg2)', border: 'var(--border)', text: 'var(--text-muted)', dot: 'var(--accent)' };
+}
+
+window.handleSNameChange = sel => {
+  const custom = document.getElementById('sNameCustom');
+  custom.style.display = sel.value === '__custom__' ? 'block' : 'none';
+};
+
 window.addStockEntry = async () => {
   const date  = document.getElementById('sDate').value;
-  const name  = document.getElementById('sName').value.trim();
+  const sel   = document.getElementById('sName');
+  const name  = sel.value === '__custom__'
+    ? document.getElementById('sNameCustom').value.trim()
+    : sel.value.trim();
   const value = parseFloat(document.getElementById('sValue').value);
   const note  = document.getElementById('sNote').value.trim();
   if (!date || !name || isNaN(value)) { showNotif('⚠️ Date, nom et valeur requis'); return; }
@@ -684,7 +716,9 @@ window.addStockEntry = async () => {
     await addDoc(collection(db, 'users', currentUser.uid, 'entries'), {
       date, name, value, note, createdAt: serverTimestamp()
     });
-    document.getElementById('sName').value  = '';
+    document.getElementById('sName').value = '';
+    document.getElementById('sNameCustom').value = '';
+    document.getElementById('sNameCustom').style.display = 'none';
     document.getElementById('sValue').value = '';
     document.getElementById('sNote').value  = '';
     document.getElementById('stockForm').classList.add('hidden');
@@ -731,9 +765,15 @@ function renderStockEntries() {
       ? (() => { const d=e.value-prev.value, p=prev.value>0?(d/prev.value)*100:0, sg=d>=0?'+':'';
           return `<span class="entry-change ${d>=0?'badge-pos':'badge-neg'}">${sg}${p.toFixed(1)}%</span>`; })()
       : `<span class="entry-change badge-neu">1ère</span>`;
-    return `<div class="entry-item">
+    const col = getNameColor(e.name);
+    return `<div class="entry-item" style="border-left:3px solid ${col.dot};">
       <div class="entry-date">${fmtDate(e.date)}</div>
-      <div class="entry-name">${escHtml(e.name)}${e.note?` <span style="color:var(--text-dim);font-size:11px;">· ${escHtml(e.note)}</span>`:''}
+      <div class="entry-name">
+        <span style="display:inline-flex;align-items:center;gap:5px;">
+          <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${col.dot};flex-shrink:0;"></span>
+          <span style="background:${col.bg};border:1px solid ${col.border};color:${col.text};padding:2px 8px;border-radius:5px;font-size:12px;font-weight:600;">${escHtml(e.name)}</span>
+        </span>
+        ${e.note?`<span style="color:var(--text-dim);font-size:11px;margin-left:4px;">· ${escHtml(e.note)}</span>`:''}
       </div>
       ${badge}
       <div class="entry-value">${fmtEur(e.value)}</div>
@@ -754,9 +794,9 @@ function drawMainChart() {
   document.getElementById('chartLine').setAttribute('stroke',col);
   document.getElementById('chartFill').setAttribute('d',fillD);
   document.getElementById('chartDots').innerHTML = pts.map((p,i)=>{
-    const d=data[i], prev=i>0?data[i-1]:null;
-    const c=!prev||d.value>=prev.value?'#1a6ef7':'#dc2626';
-    return `<circle cx="${p[0]}" cy="${p[1]}" r="3" fill="${c}" stroke="white" stroke-width="1.5"><title>${fmtDate(d.date)} : ${fmtEur(d.value)}</title></circle>`;
+    const d=data[i];
+    const col = getNameColor(d.name);
+    return `<circle cx="${p[0]}" cy="${p[1]}" r="4" fill="${col.dot}" stroke="white" stroke-width="1.5"><title>${escHtml(d.name)} — ${fmtDate(d.date)} : ${fmtEur(d.value)}</title></circle>`;
   }).join('');
   if(data.length>=2) document.getElementById('chartRange').textContent=fmtDate(data[0].date)+' → '+fmtDate(data.at(-1).date);
 }
