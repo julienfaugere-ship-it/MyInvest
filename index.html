@@ -715,6 +715,10 @@ function initApp() {
   const btnAdd = document.getElementById('btnAddEntry');
   if (btnAdd) { btnAdd.onclick = null; btnAdd.addEventListener('click', window.addStockEntry); }
 
+  // Bind add placement button
+  const btnAddP = document.getElementById('btnAddPlacement');
+  if (btnAddP) { btnAddP.onclick = window.addPlacement; }
+
   unsubEntries = onSnapshot(
     query(collection(db, 'users', uid, 'entries'), orderBy('date', 'asc')),
     snap => {
@@ -1202,7 +1206,9 @@ window.addPlacement = async () => {
   const emoji = document.getElementById('pEmoji').value;
   const amount= parseFloat(document.getElementById('pAmount').value);
   const rate  = parseFloat(document.getElementById('pRate').value) || 0;
-  const bank  = document.getElementById('pBank').value;
+  // Read bank from data attribute (survives DOM moves) or hidden input
+  const form  = document.getElementById('placementForm');
+  const bank  = form.dataset.bankKey || document.getElementById('pBank').value || 'CAISSE_EPARGNE';
   if (!date || !name || isNaN(amount) || amount<=0) { showNotif('⚠️ Date, nom et montant requis'); return; }
   const btn = document.getElementById('btnAddPlacement');
   btn.disabled=true; btn.textContent='Enregistrement…';
@@ -1226,20 +1232,19 @@ window.closePlacementForm = () => {
 window.openAddPlacement = (bidx) => {
   const bank = BANKS[bidx];
   if (!bank) return;
+  // Store the target bank key directly on the form as a data attribute (survives DOM moves)
+  const form = document.getElementById('placementForm');
+  form.dataset.bankKey = bank.key;
   document.getElementById('pBank').value = bank.key;
   document.getElementById('pFormBankBadge').textContent = bank.name;
   const today = new Date().toISOString().split('T')[0];
   document.getElementById('pDate').value = today;
   ['pName','pAmount','pRate'].forEach(id => document.getElementById(id).value='');
-  const form = document.getElementById('placementForm');
   form.classList.remove('hidden');
-  // Re-render so the form slot appears
-  renderPlacements();
-  setTimeout(() => {
-    const slot = document.getElementById('placement-form-slot-'+bank.key);
-    if (slot) { slot.replaceWith(form); form.classList.remove('hidden'); }
-    form.scrollIntoView({ behavior:'smooth', block:'nearest' });
-  }, 50);
+  // Rebind add button to ensure it works after potential DOM move
+  const btn = document.getElementById('btnAddPlacement');
+  btn.onclick = window.addPlacement;
+  form.scrollIntoView({ behavior:'smooth', block:'nearest' });
 };
 
 window.toggleBank = (bidx) => {
@@ -1305,16 +1310,17 @@ window.deletePlacement = async fsId => {
 
 function renderPlacements() {
   // Assign default bank for existing placements
-  placements.forEach(p => { if (!p.bank) p.bank = 'CAISSE_EPARGNE'; });
+  // Ensure every placement has a bank key (in-memory fix for old data without bank field)
+  const enriched = placements.map(p => ({ ...p, bank: p.bank || 'CAISSE_EPARGNE' }));
 
   const today = new Date().toISOString().split('T')[0];
   let totCur=0, totFirst=0, totProj=0;
-  placements.forEach(p => {
+  enriched.forEach(p => {
     const first=p.history[0].value, cur=p.history.at(-1).value;
     totCur+=cur; totFirst+=first; totProj+=cur*(p.rate/100);
   });
   updatePlacementSummary(totCur, totFirst, totProj);
-  document.getElementById('pCount').textContent = placements.length;
+  document.getElementById('pCount').textContent = enriched.length;
 
   const container = document.getElementById('bankCards');
 
@@ -1322,7 +1328,7 @@ function renderPlacements() {
   let html = '';
 
   BANKS.forEach((bank, bidx) => {
-    const bPlacements = placements.filter(p => p.bank === bank.key);
+    const bPlacements = enriched.filter(p => p.bank === bank.key);
     const total = bPlacements.reduce((s,p) => s + p.history.at(-1).value, 0);
     const firstTotal = bPlacements.reduce((s,p) => s + p.history[0].value, 0);
     const gain = total - firstTotal;
@@ -1419,23 +1425,11 @@ function renderPlacements() {
         ${placementsHtml}
       </div>`;
 
-      // Placement form (if it should appear here)
-      const form = document.getElementById('placementForm');
-      if (form && !form.classList.contains('hidden') && document.getElementById('pBank').value === bank.key) {
-        html += `<div id="placement-form-slot-${bank.key}"></div>`;
-      }
     }
   });
 
   container.innerHTML = html;
-
-  // Move the placement form into its slot if needed
-  const form = document.getElementById('placementForm');
-  if (form && !form.classList.contains('hidden')) {
-    const bankKey = document.getElementById('pBank').value;
-    const slot = document.getElementById('placement-form-slot-'+bankKey);
-    if (slot) slot.replaceWith(form);
-  }
+  // Rebind all update/edit buttons (they're in innerHTML so event listeners need onclick which is already inline)
 }
 
 function updatePlacementSummary(cur,init,proj) {
