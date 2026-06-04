@@ -1225,8 +1225,9 @@ window.closePlacementForm = () => {
   document.getElementById('placementForm').classList.add('hidden');
 };
 
-window.openAddPlacement = (bankKey) => {
-  const bank = BANKS.find(b => b.key === bankKey);
+window.openAddPlacement = (bidx) => {
+  const bank = BANKS[bidx];
+  const bankKey = bank?.key;
   if (!bank) return;
   document.getElementById('pBank').value = bankKey;
   document.getElementById('pFormBankBadge').textContent = bank.name;
@@ -1243,7 +1244,9 @@ window.openAddPlacement = (bankKey) => {
   form.scrollIntoView({ behavior:'smooth', block:'nearest' });
 };
 
-window.toggleBank = (bankKey) => {
+window.toggleBank = (bidx) => {
+  const bankKey = BANKS[bidx]?.key;
+  if (!bankKey) return;
   if (activeBankKey === bankKey) {
     activeBankKey = null;
   } else {
@@ -1321,7 +1324,7 @@ function renderPlacements() {
   const container = document.getElementById('bankCards');
   let html = '<div class="bank-vignettes">';
 
-  BANKS.forEach(bank => {
+  BANKS.forEach((bank, bidx) => {
     const bPlacements = placements.filter(p => (p.bank || 'CAISSE_EPARGNE') === bank.key);
     const total = bPlacements.reduce((s,p) => s + p.history.at(-1).value, 0);
     const firstTotal = bPlacements.reduce((s,p) => s + p.history[0].value, 0);
@@ -1332,7 +1335,7 @@ function renderPlacements() {
            ${gain>=0?'+':''}${fmtEur(gain)}
          </span>` : '';
 
-    html += `<div class="bank-card${isActive?' active':''}" onclick="toggleBank('${bank.key}')"
+    html += `<div class="bank-card${isActive?' active':''}" onclick="toggleBank(${bidx})"
         style="background:${bank.bg};border-color:${isActive?bank.accent:bank.border};">
         <div class="bank-card-top">
           <div class="bank-logo-wrap" style="background:#fff;border:1px solid ${bank.border};padding:4px;">
@@ -1351,7 +1354,7 @@ function renderPlacements() {
   html += '</div>';
 
   // Build detail panels for each bank
-  BANKS.forEach(bank => {
+  BANKS.forEach((bank, bidx) => {
     const isActive = activeBankKey === bank.key;
     if (!isActive) {
       html += `<div class="bank-detail" id="bankdetail-${bank.key}"></div>`;
@@ -1423,7 +1426,7 @@ function renderPlacements() {
           <span style="color:${bank.accent}">${bank.name}</span>
           <span style="font-size:11px;color:var(--text-muted);font-weight:400;">${bPlacements.length} placement${bPlacements.length>1?'s':''}</span>
         </div>
-        <button class="btn-add-from-detail" onclick="openAddPlacement('${bank.key}')">＋ Ajouter un placement</button>
+        <button class="btn-add-from-detail" onclick="openAddPlacement(${bidx})">＋ Ajouter un placement</button>
       </div>
       ${placementsHtml}
     </div>`;
