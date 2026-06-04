@@ -155,6 +155,15 @@ main { max-width: 960px; margin: 0 auto; padding: 20px 16px 40px; }
 .action-card:hover { box-shadow:var(--shadow-md); transform:translateY(-2px); }
 .ac-header { display:flex; align-items:flex-start; justify-content:space-between; gap:6px; margin-bottom:8px; }
 .ac-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.7px; padding:3px 8px; border-radius:5px; border:1px solid; line-height:1.4; }
+.btn-rename { background:none; border:none; font-size:13px; cursor:pointer; color:var(--text-dim); padding:2px 4px; border-radius:4px; transition:all .18s; flex-shrink:0; }
+.btn-rename:hover { background:var(--bg2); color:var(--text); }
+.rename-form { display:none; margin-top:8px; gap:6px; align-items:center; flex-wrap:wrap; }
+.rename-form.open { display:flex; }
+.rename-input { font-family:'Sora',sans-serif; font-size:12px; font-weight:600; padding:5px 9px; border:1px solid var(--border2); border-radius:7px; background:var(--bg2); color:var(--text); flex:1; min-width:120px; }
+.rename-input:focus { outline:none; border-color:var(--accent); }
+.btn-rename-save { background:var(--accent); color:#fff; border:none; border-radius:6px; font-family:'Sora',sans-serif; font-size:11px; font-weight:700; padding:5px 12px; cursor:pointer; }
+.btn-add-from-detail { background:var(--accent); color:#fff; border:none; border-radius:8px; font-family:'Sora',sans-serif; font-size:12px; font-weight:600; padding:8px 14px; cursor:pointer; display:flex; align-items:center; gap:5px; transition:background .18s; }
+.btn-add-from-detail:hover { background:#1558d6; }
 .ac-arrow { font-size:13px; color:var(--text-dim); transition:transform .2s; flex-shrink:0; margin-top:2px; }
 .action-card.expanded .ac-arrow { transform:rotate(180deg); }
 .ac-value { font-family:'JetBrains Mono',monospace; font-size:20px; font-weight:700; margin:2px 0; }
@@ -383,28 +392,22 @@ main { max-width: 960px; margin: 0 auto; padding: 20px 16px 40px; }
       <!-- 4 cartes fixes -->
       <div id="actionCards"></div>
 
-      <!-- Formulaire ajout saisie -->
-      <button class="form-toggle" id="btnToggleStockForm">＋ Ajouter une saisie</button>
-      <div class="add-form hidden" id="stockForm">
-        <div class="form-title">📊 Nouvelle saisie</div>
+      <!-- Formulaire ajout saisie (s'ouvre depuis le détail d'une rubrique) -->
+      <div class="add-form hidden" id="stockForm" style="margin-bottom:0;margin-top:0;">
+        <div class="form-title" style="display:flex;align-items:center;gap:10px;">
+          <span>📊 Nouvelle saisie pour</span>
+          <span id="sFormRubriqueBadge" style="padding:3px 10px;border-radius:5px;font-size:11px;font-weight:700;border:1px solid;"></span>
+        </div>
+        <input type="hidden" id="sName">
         <div class="form-row">
           <div class="form-group"><label>Date</label><input type="date" id="sDate"></div>
-          <div class="form-group">
-            <label>Rubrique</label>
-            <select id="sName">
-              <option value="">— Choisir —</option>
-              <option value="PEE - L'OREAL">PEE - L'ORÉAL</option>
-              <option value="PEE - CHAMORIN">PEE - CHAMORIN</option>
-              <option value="PERCOL - L'OREAL">PERCOL - L'ORÉAL</option>
-              <option value="RCD - L'OREAL">RCD - L'ORÉAL</option>
-            </select>
-          </div>
-        </div>
-        <div class="form-row">
           <div class="form-group"><label>Valorisation (€)</label><input type="number" id="sValue" placeholder="1 500.00" step="0.01"></div>
-          <div class="form-group"><label>Note (optionnel)</label><input type="text" id="sNote" placeholder="ex: Dividende, revalorisation…"></div>
         </div>
-        <button class="btn-add" id="btnAddEntry">Enregistrer la saisie</button>
+        <div class="form-group" style="margin-bottom:10px;"><label>Note (optionnel)</label><input type="text" id="sNote" placeholder="ex: Dividende, revalorisation…"></div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn-add" id="btnAddEntry" style="flex:1;">Enregistrer</button>
+          <button onclick="closeStockForm()" style="background:var(--bg2);border:1px solid var(--border);border-radius:9px;padding:11px 16px;font-family:Sora,sans-serif;font-size:13px;font-weight:600;color:var(--text-muted);cursor:pointer;">Annuler</button>
+        </div>
       </div>
 
     </div>
@@ -596,10 +599,7 @@ document.addEventListener('DOMContentLoaded', () => {
   ['authEmail','authPassword','authConfirm'].forEach(id => {
     document.getElementById(id).addEventListener('keydown', e => { if(e.key==='Enter') authSubmit(); });
   });
-  // Stock form toggle
-  document.getElementById('btnToggleStockForm').addEventListener('click', () => {
-    document.getElementById('stockForm').classList.toggle('hidden');
-  });
+  // Stock form is opened from detail panels via openAddFromDetail()
 });
 
 window.signOut = async () => {
@@ -718,13 +718,31 @@ function drawLorealMock() {
 // ── STOCK ENTRIES ──
 
 // ── NAME → COLOR MAPPING ──
-// ── RUBRIQUES FIXES ──
-const RUBRIQUES = [
+// ── RUBRIQUES DYNAMIQUES (labels modifiables, clés stables) ──
+const RUBRIQUES_DEFAULT = [
   { key: "PEE - L'OREAL",    label: "PEE — L'ORÉAL",    bg:'#fef3c7', border:'#fcd34d', text:'#92400e', dot:'#b45309' },
   { key: "PEE - CHAMORIN",   label: "PEE — CHAMORIN",   bg:'#e0f2fe', border:'#7dd3fc', text:'#075985', dot:'#0284c7' },
   { key: "PERCOL - L'OREAL", label: "PERCOL — L'ORÉAL", bg:'#fef9c3', border:'#fde047', text:'#713f12', dot:'#ca8a04' },
   { key: "RCD - L'OREAL",    label: "RCD — L'ORÉAL",    bg:'#ffedd5', border:'#fdba74', text:'#7c2d12', dot:'#ea580c' },
 ];
+
+// Load saved labels from localStorage (labels only — keys never change)
+function loadRubriquesLabels() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('rubriques_labels') || '{}');
+    return RUBRIQUES_DEFAULT.map(r => ({ ...r, label: saved[r.key] || r.label }));
+  } catch { return [...RUBRIQUES_DEFAULT]; }
+}
+let RUBRIQUES = loadRubriquesLabels();
+
+function saveRubriqueLabel(key, newLabel) {
+  try {
+    const saved = JSON.parse(localStorage.getItem('rubriques_labels') || '{}');
+    saved[key] = newLabel;
+    localStorage.setItem('rubriques_labels', JSON.stringify(saved));
+    RUBRIQUES = loadRubriquesLabels();
+  } catch {}
+}
 
 function getNameColor(name) {
   return RUBRIQUES.find(r => r.key === name) ||
@@ -796,6 +814,61 @@ window.cancelEdit = (fsId, event) => {
   event.stopPropagation();
   const el = document.getElementById('edit-' + fsId);
   if (el) el.classList.remove('open');
+};
+
+// ─── RENAME RUBRIQUE ───
+window.toggleRenameForm = (key, event) => {
+  event.stopPropagation();
+  const el = document.getElementById('rename-'+key.replace(/[^a-z0-9]/gi,'_'));
+  if (!el) return;
+  document.querySelectorAll('.rename-form.open').forEach(f => f.classList.remove('open'));
+  el.classList.toggle('open');
+};
+
+window.saveRename = (key, event) => {
+  event.stopPropagation();
+  const inp = document.getElementById('rename-input-'+key.replace(/[^a-z0-9]/gi,'_'));
+  const newLabel = inp.value.trim();
+  if (!newLabel) return;
+  saveRubriqueLabel(key, newLabel);
+  renderStockEntries();
+  showNotif('✅ Nom mis à jour');
+};
+
+// ─── OPEN FORM FROM DETAIL ───
+window.openAddFromDetail = (key, event) => {
+  event.stopPropagation();
+  const r = RUBRIQUES.find(r => r.key === key);
+  if (!r) return;
+  // Set hidden rubrique
+  document.getElementById('sName').value = key;
+  // Set badge
+  const badge = document.getElementById('sFormRubriqueBadge');
+  badge.textContent = r.label;
+  badge.style.background = r.bg;
+  badge.style.borderColor = r.border;
+  badge.style.color = r.text;
+  // Set today
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('sDate').value = today;
+  document.getElementById('sValue').value = '';
+  document.getElementById('sNote').value = '';
+  // Show the form inside the detail panel
+  const detailEl = event.target.closest('.action-detail');
+  if (detailEl) {
+    const form = document.getElementById('stockForm');
+    detailEl.appendChild(form);
+    form.classList.remove('hidden');
+    form.scrollIntoView({ behavior:'smooth', block:'nearest' });
+  }
+};
+
+window.closeStockForm = () => {
+  const form = document.getElementById('stockForm');
+  form.classList.add('hidden');
+  // Move back to actions tab in case it was moved
+  const tab = document.getElementById('tab-actions');
+  if (tab && !tab.contains(form)) tab.appendChild(form);
 };
 
 // ─── TOGGLE CARD ───
@@ -992,12 +1065,20 @@ function renderStockEntries() {
           </div>`;
         }).join('');
 
+    const safeKey = r.key.replace(/[^a-z0-9]/gi,'_');
     return `<div class="action-detail open" onclick="event.stopPropagation()">
       <div class="detail-header">
         <div class="detail-header-left">
           <span class="detail-rubrique-badge" style="background:${r.bg};border-color:${r.border};color:${r.text}">${r.label}</span>
           <span style="font-size:12px;color:var(--text-muted)">${ents.length} saisie${ents.length>1?'s':''}</span>
+          <button class="btn-rename" onclick="toggleRenameForm('${r.key}',event)" title="Renommer cette rubrique">✏️</button>
         </div>
+        <button class="btn-add-from-detail" onclick="openAddFromDetail('${r.key}',event)">＋ Ajouter une valeur</button>
+      </div>
+      <div class="rename-form" id="rename-${safeKey}" onclick="event.stopPropagation()">
+        <input class="rename-input" id="rename-input-${safeKey}" type="text" value="${r.label}" placeholder="Nouveau nom…">
+        <button class="btn-rename-save" onclick="saveRename('${r.key}',event)">✓ Renommer</button>
+        <button class="btn-cancel-edit" onclick="event.stopPropagation();document.getElementById('rename-${safeKey}').classList.remove('open')">Annuler</button>
       </div>
       ${statsHtml}
       ${bigChart}
