@@ -716,11 +716,8 @@ window.showTab = (tab, btn) => {
   document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
   document.getElementById('tab-' + tab).classList.add('active');
   btn.classList.add('active');
-  // Re-render on tab switch (renderPlacements checks tab visibility)
-  setTimeout(() => {
-    if (tab === 'placements') renderPlacements();
-    if (tab === 'actions')    renderStockEntries();
-  }, 10);
+  if (tab === 'placements') renderPlacements();
+  if (tab === 'actions')    renderStockEntries();
 };
 
 window.toggleForm = id => document.getElementById(id).classList.toggle('hidden');
@@ -1175,6 +1172,52 @@ function pBankKey(p) {
   return m[p.bank] || p.bank || 'CE';
 }
 
+// ── PLACEMENT CHART ──
+function buildPlacementChart(history, fsId) {
+  if (!history || history.length < 2) return '';
+  const W=500, H=80, pL=4, pR=4, pT=6, pB=6;
+  const values = history.map(h => h.value);
+  const mn = Math.min(...values), mx = Math.max(...values);
+  const rng = mx - mn || 1;
+  const pts = history.map((h,i) => {
+    const x = pL + (i/(history.length-1))*(W-pL-pR);
+    const y = pT + (1-(h.value-mn)/rng)*(H-pT-pB);
+    return [x,y];
+  });
+  const isUp = values.at(-1) >= values[0];
+  const col  = isUp ? '#16a34a' : '#dc2626';
+  const gid  = 'pcg'+String(fsId).replace(/[^a-z0-9]/gi,'');
+  const lineD = 'M'+pts.map(p=>p.join(',')).join(' L');
+  const fillD = lineD+` L${pts.at(-1)[0]},${H} L${pts[0][0]},${H} Z`;
+  const dots  = pts.map((p,i)=>
+    `<circle cx="${p[0]}" cy="${p[1]}" r="3.5" fill="${col}" stroke="white" stroke-width="1.5">
+       <title>${fmtDate(history[i].date)} : ${fmtEur(history[i].value)}</title>
+     </circle>`
+  ).join('');
+  const evoPct = ((values.at(-1)-values[0])/values[0]*100).toFixed(2);
+  return `<div style="margin-top:12px;border-top:1px solid var(--border);padding-top:12px;">
+    <div style="display:flex;justify-content:space-between;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--text-muted);margin-bottom:8px;">
+      <span>Évolution</span>
+      <span style="color:${col};font-weight:700;">${isUp?'▲':'▼'} ${evoPct}%</span>
+    </div>
+    <div style="width:100%;height:80px;">
+      <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="width:100%;height:80px;overflow:visible;">
+        <defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="${col}" stop-opacity="0.18"/>
+          <stop offset="100%" stop-color="${col}" stop-opacity="0"/>
+        </linearGradient></defs>
+        <path d="${fillD}" fill="url(#${gid})"/>
+        <path d="${lineD}" fill="none" stroke="${col}" stroke-width="2" stroke-linejoin="round"/>
+        ${dots}
+      </svg>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-dim);margin-top:4px;">
+      <span>${fmtDate(history[0].date)} · ${fmtEur(values[0])}</span>
+      <span>${fmtDate(history.at(-1).date)} · ${fmtEur(values.at(-1))}</span>
+    </div>
+  </div>`;
+}
+
 // State
 let pOpenBank  = null;   // key of open bank panel ('CE', 'CA', 'GMF' or null)
 let pAddBank   = null;   // bank key for add form
@@ -1182,11 +1225,8 @@ let pEditId    = null;   // fsId being edited
 
 // Called from showTab and from Firestore onSnapshot
 function renderPlacements() {
-  const tab = document.getElementById('tab-placements');
-  if (!tab || !tab.classList.contains('active')) return; // only render when visible
-
   const vig = document.getElementById('pVignettes');
-  if (!vig) return;
+  if (!vig) return; // tab not in DOM yet
 
   // Normalise all placements
   const all = placements.map(p => ({ ...p, _bk: pBankKey(p) }));
