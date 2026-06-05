@@ -487,6 +487,11 @@ main { max-width: 960px; margin: 0 auto; padding: 20px 16px 40px; }
       </div>
 
       <div id="bankCards"></div>
+      <div id="bankEmpty" style="display:none;text-align:center;padding:30px;">
+        <div style="font-size:32px;margin-bottom:10px;">🏦</div>
+        <p style="color:var(--text-muted);font-size:14px;margin-bottom:14px;">Cliquez sur une banque pour voir ses placements</p>
+        <button onclick="renderPlacements()" style="background:var(--accent);color:#fff;border:none;border-radius:8px;font-family:Sora,sans-serif;font-size:13px;font-weight:600;padding:10px 20px;cursor:pointer;">🔄 Rafraîchir</button>
+      </div>
 
       <div class="add-form hidden" id="placementForm" style="margin-top:12px;">
         <div class="form-title">Nouveau placement — <span id="pFormBankBadge" style="font-weight:700;color:var(--accent)"></span></div>
@@ -706,6 +711,13 @@ window.showTab = (tab, btn) => {
   document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
   document.getElementById('tab-' + tab).classList.add('active');
   btn.classList.add('active');
+  // Re-render when switching tabs (ensures events are attached to visible elements)
+  if (tab === 'placements' && typeof renderPlacements === 'function') {
+    setTimeout(renderPlacements, 10);
+  }
+  if (tab === 'actions' && typeof renderStockEntries === 'function') {
+    setTimeout(renderStockEntries, 10);
+  }
 };
 
 window.toggleForm = id => document.getElementById(id).classList.toggle('hidden');
@@ -882,33 +894,34 @@ window.openAddFromDetail = (idx, event) => {
   event.stopPropagation();
   const r = RUBRIQUES[idx];
   if (!r) return;
-  // Set hidden rubrique
-  document.getElementById('sName').value = key;
-  // Set badge
+  // Fix: use r.key (not undefined 'key')
+  document.getElementById('sName').value = r.key;
+  // Badge styling
   const badge = document.getElementById('sFormRubriqueBadge');
   badge.textContent = r.label;
   badge.style.background = r.bg;
   badge.style.borderColor = r.border;
   badge.style.color = r.text;
-  // Set today
+  // Reset fields
   const today = new Date().toISOString().split('T')[0];
   document.getElementById('sDate').value = today;
   document.getElementById('sValue').value = '';
   document.getElementById('sNote').value = '';
-  // Show the form inside the detail panel
-  const detailEl = event.target.closest('.action-detail');
-  if (detailEl) {
-    const form = document.getElementById('stockForm');
-    detailEl.appendChild(form);
-    form.classList.remove('hidden');
-    form.scrollIntoView({ behavior:'smooth', block:'nearest' });
-  }
+  // Show form (don't move it — just show it, rebind the button)
+  const form = document.getElementById('stockForm');
+  // Ensure form is inside tab-actions
+  const tab = document.getElementById('tab-actions');
+  if (!tab.contains(form)) tab.appendChild(form);
+  form.classList.remove('hidden');
+  // Rebind btnAddEntry each time (safe)
+  const btn = document.getElementById('btnAddEntry');
+  if (btn) { btn.onclick = null; btn.onclick = window.addStockEntry; }
+  form.scrollIntoView({ behavior:'smooth', block:'nearest' });
 };
 
 window.closeStockForm = () => {
   const form = document.getElementById('stockForm');
   form.classList.add('hidden');
-  // Move back to actions tab in case it was moved
   const tab = document.getElementById('tab-actions');
   if (tab && !tab.contains(form)) tab.appendChild(form);
 };
@@ -1143,7 +1156,10 @@ const BANKS = [
   { key:'CA',  name:'Crédit Agricole',    logo:'https://upload.wikimedia.org/wikipedia/fr/thumb/8/84/Logo_Cr%C3%A9dit_Agricole.svg/200px-Logo_Cr%C3%A9dit_Agricole.svg.png',          bg:'#fefce8', border:'#fde047', accent:'#ca8a04', text:'#713f12' },
   { key:'GMF', name:'GMF',                logo:'https://upload.wikimedia.org/wikipedia/fr/thumb/4/44/GMF_logo_2021.svg/200px-GMF_logo_2021.svg.png',                                   bg:'#eff6ff', border:'#93c5fd', accent:'#1d4ed8', text:'#1e3a5f' },
 ];
-const BANK_KEY_MAP = { 'CAISSE_EPARGNE':'CE', 'CREDIT_AGRICOLE':'CA' };
+const BANK_KEY_MAP = {
+  'CAISSE_EPARGNE':'CE', 'CREDIT_AGRICOLE':'CA', 'GMF':'GMF',
+  'CE':'CE', 'CA':'CA'  // already correct keys pass through
+};
 let activeBankIdx = -1;
 let editingFsId   = null;
 let addBankKey    = 'CE';
@@ -1155,7 +1171,7 @@ function getBankKey(p) {
 
 function renderPlacements() {
   const cardsEl = document.getElementById('bankCards');
-  if (!cardsEl) return;
+  if (!cardsEl) { console.warn('bankCards missing'); return; }
   const all = placements.map(p => ({ ...p, _bk: getBankKey(p) }));
   let totCur=0, totFirst=0, totProj=0;
   all.forEach(p => {
