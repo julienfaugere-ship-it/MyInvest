@@ -338,6 +338,31 @@ main { max-width: 960px; margin: 0 auto; padding: 20px 16px 40px; }
 .neg { color:var(--red); }
 .hidden { display:none; }
 
+/* ── STATS ── */
+.stats-section { margin-bottom:22px; }
+.stats-section-title { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--text-muted); margin-bottom:12px; display:flex; align-items:center; gap:8px; }
+.stats-section-title::after { content:''; flex:1; height:1px; background:var(--border); }
+.stats-kpi-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-bottom:16px; }
+@media(min-width:600px){ .stats-kpi-grid { grid-template-columns:repeat(4,1fr); } }
+.stats-kpi { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px 16px; box-shadow:var(--shadow); }
+.stats-kpi-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.8px; color:var(--text-muted); margin-bottom:5px; }
+.stats-kpi-value { font-family:'JetBrains Mono',monospace; font-size:20px; font-weight:600; }
+.stats-kpi-sub   { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-muted); margin-top:3px; }
+.stats-table { background:var(--surface); border:1px solid var(--border); border-radius:14px; overflow:hidden; box-shadow:var(--shadow); }
+.stats-row { display:flex; align-items:center; gap:12px; padding:11px 16px; border-bottom:1px solid var(--border); transition:background .15s; }
+.stats-row:last-child { border-bottom:none; }
+.stats-row:hover { background:var(--bg2); }
+.stats-rank { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-dim); width:18px; text-align:right; flex-shrink:0; }
+.stats-row-icon { width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; flex-shrink:0; }
+.stats-row-name { flex:1; min-width:0; }
+.stats-row-name-main { font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.stats-row-name-sub { font-size:10px; color:var(--text-muted); font-family:'JetBrains Mono',monospace; margin-top:1px; }
+.stats-row-values { text-align:right; flex-shrink:0; }
+.stats-row-amount { font-family:'JetBrains Mono',monospace; font-size:14px; font-weight:600; }
+.stats-row-badge { font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:600; padding:2px 7px; border-radius:5px; display:inline-block; margin-top:3px; }
+.stats-bar-track { height:5px; background:var(--bg2); border-radius:3px; margin-top:6px; overflow:hidden; }
+.stats-bar-fill  { height:100%; border-radius:3px; transition:width .5s ease; }
+
 @media(min-width:600px) {
   main { padding:24px; }
   .summary-grid { grid-template-columns:repeat(4,1fr); }
@@ -401,6 +426,7 @@ main { max-width: 960px; margin: 0 auto; padding: 20px 16px 40px; }
       <div class="tabs">
         <button class="tab-btn active" onclick="showTab('actions',this)">📈 Actions</button>
         <button class="tab-btn" onclick="showTab('placements',this)">🏦 Placements</button>
+        <button class="tab-btn" onclick="showTab('stats',this)">📊 Statistiques</button>
       </div>
     </div>
   </header>
@@ -517,6 +543,11 @@ main { max-width: 960px; margin: 0 auto; padding: 20px 16px 40px; }
       </div>
     </div>
 
+    </div>
+
+    <!-- ════ ONGLET STATS ════ -->
+    <div class="tab-content" id="tab-stats">
+      <div id="statsContent"></div>
     </div>
 
   </main>
@@ -718,6 +749,7 @@ window.showTab = (tab, btn) => {
   btn.classList.add('active');
   if (tab === 'placements') renderPlacements();
   if (tab === 'actions')    renderStockEntries();
+  if (tab === 'stats')      renderStats();
 };
 
 window.toggleForm = id => document.getElementById(id).classList.toggle('hidden');
@@ -1622,6 +1654,209 @@ function initPlacementsForm() {
 }
 
 function updatePlacementSummary(){} // no-op, handled inside renderPlacements
+
+// ════════════════════════════════
+// STATS
+// ════════════════════════════════
+function renderStats() {
+  const el = document.getElementById('statsContent');
+  if (!el) return;
+
+  // ── Collect all data ──
+  // Actions: each rubrique with its entries sorted by date
+  const actionData = RUBRIQUES.map(r => {
+    const entries = [...stockEntries]
+      .filter(e => e.name === r.key)
+      .sort((a,b) => a.date.localeCompare(b.date));
+    return { ...r, entries };
+  }).filter(r => r.entries.length > 0);
+
+  // Placements: each placement
+  const placData = placements.map(p => ({
+    ...p,
+    _bk: pBankKey(p),
+    bankName: BANKS.find(b => b.key === pBankKey(p))?.name || '—',
+  }));
+
+  // ── Global totals ──
+  const actionTotal  = actionData.reduce((s,r) => s + (r.entries.at(-1)?.value||0), 0);
+  const placTotal    = placData.reduce((s,p)   => s + (p.history.at(-1).value), 0);
+  const placFirst    = placData.reduce((s,p)   => s + (p.history[0].value), 0);
+  const grandTotal   = actionTotal + placTotal;
+  const placGain     = placTotal - placFirst;
+
+  // Action global evo
+  const actionFirstTotal = actionData.reduce((s,r) => s + (r.entries[0]?.value||0), 0);
+  const actionGain       = actionTotal - actionFirstTotal;
+
+  // ── Daily movements (actions) ──
+  // For each rubrique, compute day-over-day changes
+  const dailyMoves = [];
+  actionData.forEach(r => {
+    for (let i=1; i<r.entries.length; i++) {
+      const prev = r.entries[i-1], curr = r.entries[i];
+      const diff = curr.value - prev.value;
+      const pct  = prev.value > 0 ? (diff/prev.value)*100 : 0;
+      dailyMoves.push({
+        rubrique: r.label, key: r.key, dot: r.dot, bg: r.bg, border: r.border, text: r.text,
+        date: curr.date, prevDate: prev.date,
+        diff, pct, value: curr.value, prevValue: prev.value
+      });
+    }
+  });
+
+  // Sort by absolute pct desc
+  const topMoves  = [...dailyMoves].sort((a,b) => Math.abs(b.pct) - Math.abs(a.pct));
+  const topGains  = [...dailyMoves].filter(m=>m.diff>0).sort((a,b)=>b.diff-a.diff);
+  const topLosses = [...dailyMoves].filter(m=>m.diff<0).sort((a,b)=>a.diff-b.diff);
+
+  // ── Placement moves (between consecutive history entries) ──
+  const placMoves = [];
+  placData.forEach(p => {
+    const bank = BANKS.find(b => b.key === p._bk);
+    for (let i=1; i<p.history.length; i++) {
+      const prev = p.history[i-1], curr = p.history[i];
+      const diff = curr.value - prev.value;
+      const pct  = prev.value > 0 ? (diff/prev.value)*100 : 0;
+      placMoves.push({
+        name: p.name, bankName: bank?.name||'', emoji: p.emoji,
+        date: curr.date, diff, pct, value: curr.value
+      });
+    }
+  });
+  const placTopGains  = [...placMoves].filter(m=>m.diff>0).sort((a,b)=>b.diff-a.diff);
+  const placTopLosses = [...placMoves].filter(m=>m.diff<0).sort((a,b)=>a.diff-b.diff);
+
+  // ── Render ──
+  function kpi(label, value, sub, color) {
+    return `<div class="stats-kpi">
+      <div class="stats-kpi-label">${label}</div>
+      <div class="stats-kpi-value" style="color:${color||'var(--text)'}">${value}</div>
+      ${sub ? `<div class="stats-kpi-sub">${sub}</div>` : ''}
+    </div>`;
+  }
+
+  function moveRow(m, rank, isPlacement=false) {
+    const isPos = m.diff >= 0;
+    const sign  = isPos ? '+' : '';
+    const col   = isPos ? 'var(--green)' : 'var(--red)';
+    const bg    = isPos ? 'var(--green-light)' : 'var(--red-light)';
+    const maxBar = Math.min(Math.abs(m.pct) * 3, 100);
+    const icon  = isPlacement
+      ? `<div class="stats-row-icon" style="background:var(--bg2);font-size:18px;">${m.emoji}</div>`
+      : `<div class="stats-row-icon" style="background:${m.bg};border:1px solid ${m.border};color:${m.text};font-size:10px;font-weight:700;">${(m.rubrique||'').split('—')[1]?.trim().slice(0,4)||m.rubrique?.slice(0,4)||'?'}</div>`;
+    const nameLine = isPlacement
+      ? `<div class="stats-row-name-main">${escHtml(m.name)}</div><div class="stats-row-name-sub">${m.bankName} · ${fmtDate(m.date)}</div>`
+      : `<div class="stats-row-name-main">${m.rubrique}</div><div class="stats-row-name-sub">${fmtDate(m.prevDate)} → ${fmtDate(m.date)}</div>`;
+    return `<div class="stats-row">
+      <div class="stats-rank">${rank}</div>
+      ${icon}
+      <div class="stats-row-name">${nameLine}
+        <div class="stats-bar-track"><div class="stats-bar-fill" style="width:${maxBar}%;background:${col};"></div></div>
+      </div>
+      <div class="stats-row-values">
+        <div class="stats-row-amount">${fmtEur(m.value)}</div>
+        <div class="stats-row-badge" style="background:${bg};color:${col}">${sign}${fmtEur(m.diff)}<br>${sign}${m.pct.toFixed(2)}%</div>
+      </div>
+    </div>`;
+  }
+
+  function section(title, rows) {
+    if (!rows || rows.length===0) return '';
+    return `<div class="stats-section">
+      <div class="stats-section-title">${title}</div>
+      <div class="stats-table">${rows}</div>
+    </div>`;
+  }
+
+  // ── Résumé Actions par rubrique ──
+  const rubriquesRows = actionData.length === 0 ? '' : actionData
+    .sort((a,b) => (b.entries.at(-1)?.value||0) - (a.entries.at(-1)?.value||0))
+    .map((r, i) => {
+      const last  = r.entries.at(-1).value;
+      const first = r.entries[0].value;
+      const diff  = last - first;
+      const pct   = first > 0 ? (diff/first)*100 : 0;
+      const isPos = diff >= 0; const sign = isPos ? '+' : '';
+      const col   = isPos ? 'var(--green)' : 'var(--red)';
+      const bg    = isPos ? 'var(--green-light)' : 'var(--red-light)';
+      const nbS   = r.entries.length;
+      const maxBar= Math.min(Math.abs(pct)*2, 100);
+      return `<div class="stats-row">
+        <div class="stats-rank">${i+1}</div>
+        <div class="stats-row-icon" style="background:${r.bg};border:1px solid ${r.border};color:${r.text};font-size:10px;font-weight:700;">${r.label.split('—')[1]?.trim().slice(0,4)||r.label.slice(0,4)}</div>
+        <div class="stats-row-name">
+          <div class="stats-row-name-main">${r.label}</div>
+          <div class="stats-row-name-sub">${nbS} saisie${nbS>1?'s':''} · ${fmtDate(r.entries[0].date)} → ${fmtDate(r.entries.at(-1).date)}</div>
+          <div class="stats-bar-track"><div class="stats-bar-fill" style="width:${maxBar}%;background:${isPos?r.dot:'var(--red)'};"></div></div>
+        </div>
+        <div class="stats-row-values">
+          <div class="stats-row-amount">${fmtEur(last)}</div>
+          <div class="stats-row-badge" style="background:${bg};color:${col}">${sign}${fmtEur(diff)}&nbsp;(${sign}${pct.toFixed(2)}%)</div>
+        </div>
+      </div>`;
+    }).join('');
+
+  // ── Résumé Placements par banque ──
+  const bankRows = BANKS.map((bank,i) => {
+    const bp    = placData.filter(p=>p._bk===bank.key);
+    if (bp.length===0) return '';
+    const tot   = bp.reduce((s,p)=>s+p.history.at(-1).value,0);
+    const ftot  = bp.reduce((s,p)=>s+p.history[0].value,0);
+    const diff  = tot-ftot; const pct=ftot>0?(diff/ftot)*100:0;
+    const isPos = diff>=0; const sign=isPos?'+':'';
+    const col   = isPos?'var(--green)':'var(--red)';
+    const bg    = isPos?'var(--green-light)':'var(--red-light)';
+    const maxBar= Math.min(Math.abs(pct)*3,100);
+    return `<div class="stats-row">
+      <div class="stats-rank">${i+1}</div>
+      <div class="stats-row-icon" style="background:${bank.bg};border:1px solid ${bank.border};overflow:hidden;padding:3px;">
+        <img src="${bank.logo}" style="max-width:26px;max-height:26px;object-fit:contain;" onerror="this.style.display='none'">
+      </div>
+      <div class="stats-row-name">
+        <div class="stats-row-name-main">${bank.name}</div>
+        <div class="stats-row-name-sub">${bp.length} placement${bp.length>1?'s':''}</div>
+        <div class="stats-bar-track"><div class="stats-bar-fill" style="width:${maxBar}%;background:${isPos?bank.accent:'var(--red)'};"></div></div>
+      </div>
+      <div class="stats-row-values">
+        <div class="stats-row-amount" style="color:${bank.accent}">${fmtEur(tot)}</div>
+        <div class="stats-row-badge" style="background:${bg};color:${col}">${sign}${fmtEur(diff)}&nbsp;(${sign}${pct.toFixed(2)}%)</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  const noData = actionData.length===0 && placData.length===0;
+
+  el.innerHTML = noData ? `<div class="stats-empty">
+    <div style="font-size:40px;margin-bottom:12px;">📊</div>
+    <p>Aucune donnée. Commencez à saisir dans Actions et Placements.</p>
+  </div>` : `
+    <!-- KPIs globaux -->
+    <div class="stats-section">
+      <div class="stats-section-title">Vue d'ensemble</div>
+      <div class="stats-kpi-grid">
+        ${kpi('Total portefeuille', fmtEur(grandTotal), `actions ${fmtEur(actionTotal)} · placements ${fmtEur(placTotal)}`, 'var(--accent)')}
+        ${kpi('Gains actions', (actionGain>=0?'+':'')+fmtEur(actionGain), (actionGain>=0?'+':'')+((actionFirstTotal>0?(actionGain/actionFirstTotal*100):0).toFixed(2))+'%', actionGain>=0?'var(--green)':'var(--red)')}
+        ${kpi('Gains placements', (placGain>=0?'+':'')+fmtEur(placGain), (placGain>=0?'+':'')+((placFirst>0?(placGain/placFirst*100):0).toFixed(2))+'%', placGain>=0?'var(--green)':'var(--red)')}
+        ${kpi('Nb. saisies', stockEntries.length + placMoves.length + placData.length, stockEntries.length+' actions · '+placData.length+' placements', 'var(--text)')}
+      </div>
+    </div>
+
+    ${rubriquesRows ? section('Synthèse par rubrique (Actions)', rubriquesRows) : ''}
+    ${bankRows      ? section('Synthèse par banque (Placements)', bankRows) : ''}
+
+    ${topGains.length>0  ? section('🚀 Plus fortes hausses — Actions',
+        topGains.slice(0,5).map((m,i)=>moveRow(m,i+1)).join('')) : ''}
+    ${topLosses.length>0 ? section('📉 Plus fortes baisses — Actions',
+        topLosses.slice(0,5).map((m,i)=>moveRow(m,i+1)).join('')) : ''}
+    ${topMoves.length>0  ? section('⚡ Mouvements les plus marquants — Actions',
+        topMoves.slice(0,5).map((m,i)=>moveRow(m,i+1)).join('')) : ''}
+    ${placTopGains.length>0  ? section('🚀 Plus fortes hausses — Placements',
+        placTopGains.slice(0,5).map((m,i)=>moveRow(m,i+1,true)).join('')) : ''}
+    ${placTopLosses.length>0 ? section('📉 Plus fortes baisses — Placements',
+        placTopLosses.slice(0,5).map((m,i)=>moveRow(m,i+1,true)).join('')) : ''}
+  `;
+}
 
 // ── UTILS ──
 function fmtEur(v) { return v.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})+' €'; }
