@@ -1335,11 +1335,13 @@ function renderPlacements() {
       addBtn.style.cssText = `background:${bank.accent};color:#fff;border:none;border-radius:8px;font-family:Sora,sans-serif;font-size:12px;font-weight:600;padding:8px 14px;cursor:pointer;`;
       addBtn.addEventListener('click', () => {
         pAddBank = bank.key;
+        // Move pAddForm inside this panel so it's visible
+        const f = document.getElementById('pAddForm');
         document.getElementById('pFormBankName').textContent = bank.name;
         document.getElementById('pDate').value = today;
         ['pName','pAmount','pRate'].forEach(id => document.getElementById(id).value = '');
-        const f = document.getElementById('pAddForm');
         f.style.display = 'block';
+        panel.appendChild(f);
         setTimeout(() => f.scrollIntoView({ behavior:'smooth', block:'nearest' }), 50);
       });
       ph.appendChild(addBtn);
@@ -1496,29 +1498,32 @@ function renderPlacements() {
 
 // ── ADD PLACEMENT ──
 function initPlacementsForm() {
-  document.getElementById('pSaveBtn').addEventListener('click', async () => {
-    const date  = document.getElementById('pDate').value;
-    const name  = document.getElementById('pName').value.trim();
-    const type  = document.getElementById('pType').value;
-    const emoji = document.getElementById('pEmoji').value;
-    const amount= parseFloat(document.getElementById('pAmount').value);
-    const rate  = parseFloat(document.getElementById('pRate').value)||0;
-    if (!date||!name||isNaN(amount)||amount<=0) { showNotif('⚠️ Date, nom et montant requis'); return; }
-    const btn = document.getElementById('pSaveBtn');
-    btn.disabled=true; btn.textContent='Enregistrement…';
-    try {
-      await addDoc(collection(db,'users',currentUser.uid,'placements'),{
-        date,name,type,emoji,rate,bank:pAddBank||'CE',
-        history:[{date,value:amount}],createdAt:serverTimestamp()
-      });
-      ['pName','pAmount','pRate'].forEach(id=>document.getElementById(id).value='');
+  // Use event delegation on document so it works wherever the form is moved in the DOM
+  document.addEventListener('click', async (e) => {
+    if (e.target.id === 'pSaveBtn') {
+      const date  = document.getElementById('pDate').value;
+      const name  = document.getElementById('pName').value.trim();
+      const type  = document.getElementById('pType').value;
+      const emoji = document.getElementById('pEmoji').value;
+      const amount= parseFloat(document.getElementById('pAmount').value);
+      const rate  = parseFloat(document.getElementById('pRate').value)||0;
+      if (!date||!name||isNaN(amount)||amount<=0) { showNotif('⚠️ Date, nom et montant requis'); return; }
+      const btn = document.getElementById('pSaveBtn');
+      btn.disabled=true; btn.textContent='Enregistrement…';
+      try {
+        await addDoc(collection(db,'users',currentUser.uid,'placements'),{
+          date,name,type,emoji,rate,bank:pAddBank||'CE',
+          history:[{date,value:amount}],createdAt:serverTimestamp()
+        });
+        ['pName','pAmount','pRate'].forEach(id=>document.getElementById(id).value='');
+        document.getElementById('pAddForm').style.display='none';
+        showNotif('✅ Placement ajouté');
+      } catch(err){showNotif('❌ '+err.message);}
+      btn.disabled=false; btn.textContent='Enregistrer';
+    }
+    if (e.target.id === 'pCancelBtn') {
       document.getElementById('pAddForm').style.display='none';
-      showNotif('✅ Placement ajouté');
-    } catch(err){showNotif('❌ '+err.message);}
-    btn.disabled=false; btn.textContent='Enregistrer';
-  });
-  document.getElementById('pCancelBtn').addEventListener('click', () => {
-    document.getElementById('pAddForm').style.display='none';
+    }
   });
 }
 
